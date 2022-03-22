@@ -17,6 +17,10 @@ runElement.onclick = async () => {
 
 	const length = compiler.compile(compile_text_ptr, view.byteLength) | 0;
 	const binary = new Uint8Array(compiler.memory.buffer, compiler.get_wasm_binary(), length);
-	const { instance } = await WebAssembly.instantiate(binary);
 	console.log(binary);
+	const { instance } = await WebAssembly.instantiate(binary);
+
+	const value = instance.exports.main();
+	console.log(value);
+
 }

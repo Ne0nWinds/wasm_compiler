@@ -12,14 +12,12 @@ u32 int_str_len(char *text) {
 }
 
 int int_from_str(char *text, u32 length) {
-	text += length - 1;
 	int value = 0;
 
-	while (length) {
+	for (int i = 0; i < length; ++i) {
 		value *= 10;
 		value += *text - '0';
-		text -= 1;
-		length -= 1;
+		text += 1;
 	}
 
 	return value;
@@ -41,6 +39,7 @@ List tokenize_text(char *text, u32 length) {
 			t.type = TOKEN_INT;
 			u32 int_len = int_str_len(text + i);
 			t.value = int_from_str(text + i, int_len);
+			i += int_len - 1;
 		} else if (c == '+') {
 			t.type = TOKEN_PLUS;
 		} else if (c == '-') {

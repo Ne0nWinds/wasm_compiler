@@ -63,7 +63,6 @@ static u8 *create_main_function(u8 *binary) {
 __attribute__((export_name("compile")))
 int compile(char *text, u32 length) {
 
-	bump_reset();
 	wasm_binary = bump_alloc(1024 * 32);
 
 	u8 *c = wasm_binary;
@@ -73,27 +72,34 @@ int compile(char *text, u32 length) {
 	List token_list = tokenize_text(text, length);
 
 	c[0] = WASM_SECTION_CODE;
-	c[1] = 0x2;
+	c[1] = 0x3;
 	c[2] = 0x1; // vec(code)
-	c[3] = 0x0;
+	c[3] = 0x1;
+	c[4] = 0x0;
 
 	u8 *code_section_length = c + 1;
 	u8 *code_section_length2 = c + 3;
 
-	c += 4;
+	c += 5;
 
-	c[0] = 0x0; // locals list
-	c[1] = 0x41;
-	c[2] = 0x5;
-	c[3] = 0x41;
-	c[4] = 0x7;
-	c[5] = 0x6A;
-	c[6] = 0xB;
+	u8 *code_start = c;
 
-	*code_section_length += 7;
-	*code_section_length2 += 7;
+	*c++ = WASM_I32_CONST;
+	*c++ = ((token *)token_list.start)[0].value;
 
-	c += 7;
+	for (int i = 1; i < token_list.length; i += 2) {
+		token t = ((token *)token_list.start)[i + 1];
+		*c++ = WASM_I32_CONST;
+		*c++ = t.value;
+
+		token t2 = ((token *)token_list.start)[i];
+		*c++ = (t2.type == TOKEN_PLUS) ? WASM_I32_ADD : WASM_I32_SUB;
+	}
+
+	*c++ = 0xB;
+
+	*code_section_length += c - code_start;
+	*code_section_length2 += c - code_start;
 
 	return c - wasm_binary;
 }

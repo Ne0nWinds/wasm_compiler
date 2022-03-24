@@ -11,7 +11,8 @@ const text_encoder = new TextEncoder('utf-8');
 runElement.onclick = async () => {
 	const val = editor.getValue();
 
-	const compile_text_ptr = compiler.bump_alloc_js(val.length);
+	compiler.bump_reset_js();
+	const compile_text_ptr = compiler.bump_alloc_js(val.length + 1);
 	const view = new Uint8Array(compiler.memory.buffer, compile_text_ptr, val.length);
 	text_encoder.encodeInto(val, view);
 

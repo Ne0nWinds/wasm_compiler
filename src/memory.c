@@ -5,15 +5,20 @@ static char *current = (char *)memory;
 
 // TODO: memory alignment
 void *bump_alloc(u32 s) {
+	void *ptr = current;
+	__builtin_memset(ptr, 0, s);
 	current += s;
-	return current;
+	return ptr;
 }
 
 __attribute__((export_name("bump_alloc_js")))
 u32 bump_alloc_js(u32 s) {
-	void *ptr = bump_alloc(s);
-	__builtin_memset(ptr, 0, s);
-	return (u32)ptr;
+	return (u32)bump_alloc(s);
+}
+
+__attribute__((export_name("bump_reset_js")))
+void bump_reset_js() {
+	bump_reset();
 }
 
 void *bump_get() {

@@ -35,4 +35,7 @@ enum {
 
 	WASM_I32_ADD = 0x6A,
 	WASM_I32_SUB = 0x6B,
+	WASM_I32_MUL = 0x6C,
+	WASM_I32_DIV_S = 0x6D,
+	WASM_I32_DIV_U = 0x6E,
 };

@@ -40,10 +40,23 @@ List tokenize_text(char *text, u32 length) {
 			u32 int_len = int_str_len(text + i);
 			t.value = int_from_str(text + i, int_len);
 			i += int_len - 1;
-		} else if (c == '+') {
-			t.type = TOKEN_PLUS;
-		} else if (c == '-') {
-			t.type = TOKEN_MINUS;
+			list_add(token_list, t);
+			continue;
+		}
+
+		switch (c) {
+			case '+': {
+				t.type = TOKEN_PLUS;
+			} break;
+			case '-': {
+				t.type = TOKEN_MINUS;
+			} break;
+			case '*': {
+				t.type = TOKEN_STAR;
+			} break;
+			case '/': {
+				t.type = TOKEN_FSLASH;
+			} break;
 		}
 
 		list_add(token_list, t);

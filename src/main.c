@@ -93,7 +93,22 @@ int compile(char *text, u32 length) {
 		*c++ = t.value;
 
 		token t2 = ((token *)token_list.start)[i];
-		*c++ = (t2.type == TOKEN_PLUS) ? WASM_I32_ADD : WASM_I32_SUB;
+		u8 *op = c;
+		c += 1;
+		switch (t2.type) {
+			case TOKEN_PLUS: {
+				*op = WASM_I32_ADD;
+			} break;
+			case TOKEN_MINUS: {
+				*op = WASM_I32_SUB;
+			} break;
+			case TOKEN_STAR: {
+				*op = WASM_I32_MUL;
+			} break;
+			case TOKEN_FSLASH: {
+				*op = WASM_I32_DIV_S;
+			} break;
+		}
 	}
 
 	*c++ = 0xB;

@@ -14,6 +14,10 @@ async function runTestCases(instance) {
 		'22+28', 50,
 		'50 - 50 + 25', 25,
 		'       50              - 50          + 25     \n', 25,
+		'10 / 2', 5,
+		'2 * 8 + 1', 17,
+		'2 * 8 / 2', 8,
+		'10 / 5 + 32 - 1', 33,
 	];
 
 	const { length } = test_cases;

@@ -6,6 +6,8 @@ typedef enum {
 	TOKEN_INT = 1,
 	TOKEN_PLUS,
 	TOKEN_MINUS,
+	TOKEN_STAR,
+	TOKEN_FSLASH,
 } token_type;
 
 typedef struct token token;

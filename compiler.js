@@ -12,5 +12,4 @@ const { instance } = await WebAssembly.instantiateStreaming(
 	}
 );
 
-console.log(instance);
 export default instance.exports;

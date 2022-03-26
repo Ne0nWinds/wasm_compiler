@@ -7,9 +7,35 @@ editor.resize();
 const runElement = document.getElementById("run");
 const disassembleElement = document.getElementById("disassemble");
 
-const text_encoder = new TextEncoder('utf-8');
-runElement.onclick = async () => {
-	const val = editor.getValue();
+async function runTestCases(instance) {
+	const test_cases = [
+		'5', 5,
+		'2+2', 4,
+		'22+28', 50,
+		'50 - 50 + 25', 25,
+		'       50              - 50          + 25     \n', 25,
+	];
+
+	const { length } = test_cases;
+
+	let i = 0;
+	while (i < length) {
+		const actualValue = await compile(test_cases[i]);
+		const expectedValue = test_cases[i + 1];
+
+		if (expectedValue != actualValue) {
+			console.log("=== Test Case Failed ===");
+			console.log(`${test_cases[i]}\nExpected Value: ${expectedValue}\nActual Value: ${actualValue}`);
+			break;
+		}
+		i += 2;
+	}
+	if (i == length)
+		console.log("=== All Test Cases Passed ===");
+}
+
+async function compile(val) {
+	const text_encoder = new TextEncoder('utf-8');
 
 	compiler.bump_reset_js();
 	const compile_text_ptr = compiler.bump_alloc_js(val.length + 1);
@@ -18,10 +44,16 @@ runElement.onclick = async () => {
 
 	const length = compiler.compile(compile_text_ptr, view.byteLength) | 0;
 	const binary = new Uint8Array(compiler.memory.buffer, compiler.get_wasm_binary(), length);
-	console.log(binary);
+	// console.log(binary);
 	const { instance } = await WebAssembly.instantiate(binary);
 
 	const value = instance.exports.main();
-	console.log(value);
-
+	return value;
 }
+
+runElement.onclick = async () => {
+	const value = await compile(editor.getValue());
+	console.log(value);
+}
+console.clear();
+runTestCases();

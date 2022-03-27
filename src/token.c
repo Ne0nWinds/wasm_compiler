@@ -23,7 +23,7 @@ int int_from_str(char *text, u32 length) {
 	return value;
 }
 
-List token_list;
+List token_list = {0};
 
 List tokenize_text(char *text, u32 length) {
 	token_list.length = 0;
@@ -52,10 +52,10 @@ List tokenize_text(char *text, u32 length) {
 				t.type = TOKEN_MINUS;
 			} break;
 			case '*': {
-				t.type = TOKEN_STAR;
+				t.type = TOKEN_MUL;
 			} break;
 			case '/': {
-				t.type = TOKEN_FSLASH;
+				t.type = TOKEN_DIV;
 			} break;
 		}
 

@@ -12,6 +12,7 @@ void bump_reset();
 typedef struct List List;
 struct List {
 	u32 length;
+	u32 item_size;
 	void *start;
 };
 
@@ -19,4 +20,12 @@ struct List {
 	typeof(item) *start = list.start; \
 	start[list.length] = item; \
 	list.length += 1; \
+}
+
+
+#define list_get(list, item_type, i) ((item_type *)list.start)[i]
+
+#define list_push(list, value) {\
+	((typeof(value) *)list.start)[list.length] = value;\
+	list.length += 1;\
 }

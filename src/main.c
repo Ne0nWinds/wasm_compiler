@@ -84,10 +84,82 @@ int compile(char *text, u32 length) {
 
 	u8 *code_start = c;
 
-	*c++ = WASM_I32_CONST;
-	*c++ = ((token *)token_list.start)[0].value;
+	List operators = {
+		.length = 0,
+		.start = bump_get()
+	};
 
+	*c++ = WASM_I32_CONST;
+	*c++ = list_get(token_list, token, 0).value;
 	for (int i = 1; i < token_list.length; i += 2) {
+		token op_token = list_get(token_list, token, i);
+		token number_token = list_get(token_list, token, i + 1);
+
+		u8 op = 0;
+		u8 op_precedence = 0;
+		u8 prev_op = list_get(operators, u8, operators.length - 1);
+		u8 prev_op_precedence = 0;
+
+		switch (op_token.type) {
+			case TOKEN_PLUS: {
+				op = WASM_I32_ADD;
+				op_precedence = 1;
+			} break;
+			case TOKEN_MINUS: {
+				op = WASM_I32_SUB;
+				op_precedence = 1;
+			} break;
+			case TOKEN_MUL: {
+				op = WASM_I32_MUL;
+				op_precedence = 2;
+			} break;
+			case TOKEN_DIV: {
+				op = WASM_I32_DIV_S;
+				op_precedence = 2;
+			} break;
+		}
+
+		switch (prev_op) {
+			case WASM_I32_ADD:
+			case WASM_I32_SUB: {
+				prev_op_precedence = 1;
+			} break;
+			case WASM_I32_DIV_S:
+			case WASM_I32_MUL: {
+				prev_op_precedence = 2;
+			} break;
+		}
+
+		if (!operators.length) {
+			*c++ = WASM_I32_CONST;
+			*c++ = number_token.value;
+			list_push(operators, op);
+			continue;
+		}
+
+		if (prev_op_precedence >= op_precedence) {
+			*c++ = prev_op;
+			*c++ = WASM_I32_CONST;
+			*c++ = number_token.value;
+			operators.length -= 1;
+			list_push(operators, op);
+			continue;
+		}
+
+		if (prev_op_precedence < op_precedence) {
+			*c++ = WASM_I32_CONST;
+			*c++ = number_token.value;
+			list_push(operators, op);
+			continue;
+		}
+	}
+
+	for (int i = operators.length - 1; i >= 0; --i) {
+		u8 op = list_get(operators, u8, i);
+		*c++ = op;
+	}
+
+	/* for (int i = 1; i < token_list.length; i += 2) {
 		token t = ((token *)token_list.start)[i + 1];
 		*c++ = WASM_I32_CONST;
 		*c++ = t.value;
@@ -109,7 +181,7 @@ int compile(char *text, u32 length) {
 				*op = WASM_I32_DIV_S;
 			} break;
 		}
-	}
+	} */
 
 	*c++ = 0xB;
 

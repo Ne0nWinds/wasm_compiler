@@ -18,6 +18,10 @@ async function runTestCases(instance) {
 		'2 * 8 + 1', 17,
 		'2 * 8 / 2', 8,
 		'10 / 5 + 32 - 1', 33,
+		'1 + 2 * 8', 17,
+		'2 + 5 * 3 - 1', 16,
+		'6 / 2 * 10 + 45 - 20 * 2', 35,
+		'2 + 8 - 1 + 5 * 2 + 4 / 2 * 8', 35,
 	];
 
 	const { length } = test_cases;
@@ -56,7 +60,8 @@ async function compile(val) {
 }
 
 runElement.onclick = async () => {
-	const value = await compile(editor.getValue());
+	const editorValue = editor.getValue();
+	const value = await compile(editorValue);
 	console.log(value);
 }
 console.clear();

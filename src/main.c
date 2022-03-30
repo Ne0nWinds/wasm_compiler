@@ -89,99 +89,93 @@ int compile(char *text, u32 length) {
 		.start = bump_get()
 	};
 
-	*c++ = WASM_I32_CONST;
-	*c++ = list_get(token_list, token, 0).value;
-	for (int i = 1; i < token_list.length; i += 2) {
-		token op_token = list_get(token_list, token, i);
-		token number_token = list_get(token_list, token, i + 1);
+	typedef struct operator operator;
+	struct operator {
+		u8 paren_level;
+		u8 precedence;
+		u8 op;
+	};
 
-		u8 op = 0;
-		u8 op_precedence = 0;
-		u8 prev_op = list_get(operators, u8, operators.length - 1);
-		u8 prev_op_precedence = 0;
+	u32 current_paren_level = 0;
 
-		switch (op_token.type) {
+	for (u32 i = 0; i < token_list.length; ++i) {
+
+		token t = list_get(token_list, token, i);
+
+		if (t.type == TOKEN_INT) {
+			*c++ = WASM_I32_CONST;
+			*c++ = list_get(token_list, token, i).value;
+			continue;
+		}
+
+		if (t.type == TOKEN_OPEN_PARENTHESIS) {
+			// change precedence
+			current_paren_level += 1;
+			continue;
+		}
+
+		if (t.type == TOKEN_CLOSED_PARENTHESIS) {
+			// unwind stack to open paren
+
+			for (int i = operators.length - 1; i >= 0; --i) {
+				operator op = list_get(operators, operator, i);
+				if (op.paren_level != current_paren_level) break;
+				operators.length -= 1;
+				*c++ = op.op;
+			}
+
+			current_paren_level -= 1;
+			continue;
+		}
+
+		operator op = {0};
+		op.paren_level = current_paren_level;
+
+		switch (t.type) {
 			case TOKEN_PLUS: {
-				op = WASM_I32_ADD;
-				op_precedence = 1;
+				op.op = WASM_I32_ADD;
+				op.precedence = 1;
 			} break;
 			case TOKEN_MINUS: {
-				op = WASM_I32_SUB;
-				op_precedence = 1;
+				op.op = WASM_I32_SUB;
+				op.precedence = 1;
 			} break;
 			case TOKEN_MUL: {
-				op = WASM_I32_MUL;
-				op_precedence = 2;
+				op.op = WASM_I32_MUL;
+				op.precedence = 2;
 			} break;
 			case TOKEN_DIV: {
-				op = WASM_I32_DIV_S;
-				op_precedence = 2;
+				op.op = WASM_I32_DIV_S;
+				op.precedence = 2;
 			} break;
 		}
 
-		switch (prev_op) {
-			case WASM_I32_ADD:
-			case WASM_I32_SUB: {
-				prev_op_precedence = 1;
-			} break;
-			case WASM_I32_DIV_S:
-			case WASM_I32_MUL: {
-				prev_op_precedence = 2;
-			} break;
-		}
+		operator prev_op = list_get(operators, operator, operators.length - 1);
+		u32 op_precedence = op.paren_level * 2 + op.precedence;
+		u32 prev_op_precedence = prev_op.paren_level * 2 + prev_op.precedence;
 
 		if (!operators.length) {
-			*c++ = WASM_I32_CONST;
-			*c++ = number_token.value;
 			list_push(operators, op);
 			continue;
 		}
 
-		if (prev_op_precedence >= op_precedence) {
-			*c++ = prev_op;
-			*c++ = WASM_I32_CONST;
-			*c++ = number_token.value;
+		if (op_precedence > prev_op_precedence) {
+			list_push(operators, op);
+			continue;
+		}
+
+		if (op_precedence <= prev_op_precedence) {
+			*c++ = prev_op.op;
 			operators.length -= 1;
-			list_push(operators, op);
-			continue;
-		}
-
-		if (prev_op_precedence < op_precedence) {
-			*c++ = WASM_I32_CONST;
-			*c++ = number_token.value;
 			list_push(operators, op);
 			continue;
 		}
 	}
 
 	for (int i = operators.length - 1; i >= 0; --i) {
-		u8 op = list_get(operators, u8, i);
-		*c++ = op;
+		operator op = list_get(operators, operator, i);
+		*c++ = op.op;
 	}
-
-	/* for (int i = 1; i < token_list.length; i += 2) {
-		token t = ((token *)token_list.start)[i + 1];
-		*c++ = WASM_I32_CONST;
-		*c++ = t.value;
-
-		token t2 = ((token *)token_list.start)[i];
-		u8 *op = c;
-		c += 1;
-		switch (t2.type) {
-			case TOKEN_PLUS: {
-				*op = WASM_I32_ADD;
-			} break;
-			case TOKEN_MINUS: {
-				*op = WASM_I32_SUB;
-			} break;
-			case TOKEN_STAR: {
-				*op = WASM_I32_MUL;
-			} break;
-			case TOKEN_FSLASH: {
-				*op = WASM_I32_DIV_S;
-			} break;
-		}
-	} */
 
 	*c++ = 0xB;
 

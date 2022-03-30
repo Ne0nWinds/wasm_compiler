@@ -57,6 +57,12 @@ List tokenize_text(char *text, u32 length) {
 			case '/': {
 				t.type = TOKEN_DIV;
 			} break;
+			case '(': {
+				t.type = TOKEN_OPEN_PARENTHESIS;
+			} break;
+			case ')': {
+				t.type = TOKEN_CLOSED_PARENTHESIS;
+			} break;
 		}
 
 		list_add(token_list, t);

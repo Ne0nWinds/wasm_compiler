@@ -8,6 +8,8 @@ typedef enum {
 	TOKEN_MINUS,
 	TOKEN_MUL,
 	TOKEN_DIV,
+	TOKEN_OPEN_PARENTHESIS,
+	TOKEN_CLOSED_PARENTHESIS,
 } token_type;
 
 typedef struct token token;

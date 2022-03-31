@@ -44,12 +44,22 @@ List tokenize_text(char *text, u32 length) {
 			continue;
 		}
 
+		token prev_token = {0};
+		if (i > 0)
+			prev_token = list_get(token_list, token, token_list.length - 1);
+
 		switch (c) {
 			case '+': {
 				t.type = TOKEN_PLUS;
+				if (prev_token.type != TOKEN_INT) {
+					t.type = TOKEN_POSITIVE;
+				}
 			} break;
 			case '-': {
 				t.type = TOKEN_MINUS;
+				if (prev_token.type != TOKEN_INT) {
+					t.type = TOKEN_NEGATIVE;
+				}
 			} break;
 			case '*': {
 				t.type = TOKEN_MUL;

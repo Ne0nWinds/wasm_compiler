@@ -24,12 +24,20 @@ async function runTestCases(instance) {
 		'2 + 8 - 1 + 5 * 2 + 4 / 2 * 8', 35,
 		'1 + (2 + 5) * 3 + 1', 23,
 		'2 + (24 / ( 4 + 4 )) * 3', 11,
+		'-2', -2,
+		'-2 + 42', 40,
+		'2 + -(24 / ( 4 + 4 )) * 3', -7,
+		'+10', 10,
+		'255', 255,
+		'1024 * 1024', 1048576,
 	];
 
 	const { length } = test_cases;
 
 	let i = 0;
 	while (i < length) {
+		console.log("Running Test Case " + i);
+		console.log(test_cases[i]);
 		const actualValue = await compile(test_cases[i]);
 		const expectedValue = test_cases[i + 1];
 
@@ -40,8 +48,10 @@ async function runTestCases(instance) {
 		}
 		i += 2;
 	}
-	if (i == length)
+	if (i == length) {
+		console.clear();
 		console.log("=== All Test Cases Passed ===");
+	}
 }
 
 async function compile(val) {
@@ -66,5 +76,4 @@ runElement.onclick = async () => {
 	const value = await compile(editorValue);
 	console.log(value);
 }
-console.clear();
 runTestCases();

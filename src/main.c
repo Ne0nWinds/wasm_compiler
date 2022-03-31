@@ -60,6 +60,30 @@ static u8 *create_main_function(u8 *binary) {
 	return binary;
 }
 
+u8 *token_to_op(u32 token_type, u8 *binary) {
+	u32 byte_length = 1;
+	switch (token_type) {
+		case TOKEN_PLUS: {
+			*binary = WASM_I32_ADD;
+		} break;
+		case TOKEN_MINUS: {
+			*binary = WASM_I32_SUB;
+		} break;
+		case TOKEN_MUL: {
+			*binary = WASM_I32_MUL;
+		} break;
+		case TOKEN_DIV: {
+			*binary = WASM_I32_DIV_S;
+		} break;
+		case TOKEN_NEGATIVE: {
+			*binary = WASM_I32_CONST;
+			EncodeLEB128(binary + 1, -1, byte_length);
+			binary[byte_length++] = WASM_I32_MUL;
+		} break;
+	}
+	return binary + byte_length;
+}
+
 __attribute__((export_name("compile")))
 int compile(char *text, u32 length) {
 
@@ -93,7 +117,7 @@ int compile(char *text, u32 length) {
 	struct operator {
 		u8 paren_level;
 		u8 precedence;
-		u8 op;
+		u8 token_type;
 	};
 
 	u32 current_paren_level = 0;
@@ -104,7 +128,9 @@ int compile(char *text, u32 length) {
 
 		if (t.type == TOKEN_INT) {
 			*c++ = WASM_I32_CONST;
-			*c++ = list_get(token_list, token, i).value;
+			int length = 0;
+			EncodeLEB128(c, list_get(token_list, token, i).value, length);
+			c += length;
 			continue;
 		}
 
@@ -121,7 +147,7 @@ int compile(char *text, u32 length) {
 				operator op = list_get(operators, operator, i);
 				if (op.paren_level != current_paren_level) break;
 				operators.length -= 1;
-				*c++ = op.op;
+				c = token_to_op(op.token_type, c);
 			}
 
 			current_paren_level -= 1;
@@ -129,24 +155,27 @@ int compile(char *text, u32 length) {
 		}
 
 		operator op = {0};
+		op.token_type = t.type;
 		op.paren_level = current_paren_level;
 
 		switch (t.type) {
 			case TOKEN_PLUS: {
-				op.op = WASM_I32_ADD;
 				op.precedence = 1;
 			} break;
 			case TOKEN_MINUS: {
-				op.op = WASM_I32_SUB;
 				op.precedence = 1;
 			} break;
 			case TOKEN_MUL: {
-				op.op = WASM_I32_MUL;
 				op.precedence = 2;
 			} break;
 			case TOKEN_DIV: {
-				op.op = WASM_I32_DIV_S;
 				op.precedence = 2;
+			} break;
+			case TOKEN_NEGATIVE: {
+				op.precedence = 3;
+			} break;
+			case TOKEN_POSITIVE: {
+				continue;
 			} break;
 		}
 
@@ -165,7 +194,7 @@ int compile(char *text, u32 length) {
 		}
 
 		if (op_precedence <= prev_op_precedence) {
-			*c++ = prev_op.op;
+			c = token_to_op(prev_op.token_type, c);
 			operators.length -= 1;
 			list_push(operators, op);
 			continue;
@@ -174,7 +203,7 @@ int compile(char *text, u32 length) {
 
 	for (int i = operators.length - 1; i >= 0; --i) {
 		operator op = list_get(operators, operator, i);
-		*c++ = op.op;
+		c = token_to_op(op.token_type, c);
 	}
 
 	*c++ = 0xB;

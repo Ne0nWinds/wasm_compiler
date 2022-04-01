@@ -80,6 +80,18 @@ u8 *token_to_op(u32 token_type, u8 *binary) {
 			EncodeLEB128(binary + 1, -1, byte_length);
 			binary[byte_length++] = WASM_I32_MUL;
 		} break;
+		case TOKEN_LT: {
+			*binary = WASM_I32_LT_S;
+		} break;
+		case TOKEN_LE: {
+			*binary = WASM_I32_LE_S;
+		} break;
+		case TOKEN_GT: {
+			*binary = WASM_I32_GT_S;
+		} break;
+		case TOKEN_GE: {
+			*binary = WASM_I32_GE_S;
+		} break;
 	}
 	return binary + byte_length;
 }
@@ -118,6 +130,24 @@ int compile(char *text, u32 length) {
 		u8 paren_level;
 		u8 precedence;
 		u8 token_type;
+	};
+
+	enum {
+		PREC_COMMA = 1,
+		PREC_ASSIGN,
+		PREC_TERNARY,
+		PREC_OR,
+		PREC_AND,
+		PREC_BITWISE_OR,
+		PREC_BITWISE_XOR,
+		PREC_BITWISE_AND,
+		PREC_EQUALITY,
+		PREC_RELATIONAL,
+		PREC_SHIFT,
+		PREC_ADD,
+		PREC_MUL,
+		PREC_UNARY,
+		PREC_POSTFIX,
 	};
 
 	u32 current_paren_level = 0;
@@ -159,20 +189,22 @@ int compile(char *text, u32 length) {
 		op.paren_level = current_paren_level;
 
 		switch (t.type) {
+			case TOKEN_MINUS:
 			case TOKEN_PLUS: {
-				op.precedence = 1;
+				op.precedence = PREC_ADD;
 			} break;
-			case TOKEN_MINUS: {
-				op.precedence = 1;
-			} break;
+			case TOKEN_DIV:
 			case TOKEN_MUL: {
-				op.precedence = 2;
-			} break;
-			case TOKEN_DIV: {
-				op.precedence = 2;
+				op.precedence = PREC_MUL;
 			} break;
 			case TOKEN_NEGATIVE: {
-				op.precedence = 3;
+				op.precedence = PREC_POSTFIX;
+			} break;
+			case TOKEN_LT:
+			case TOKEN_LE:
+			case TOKEN_GT:
+			case TOKEN_GE: {
+				op.precedence = PREC_RELATIONAL;
 			} break;
 			case TOKEN_POSITIVE: {
 				continue;
@@ -180,8 +212,8 @@ int compile(char *text, u32 length) {
 		}
 
 		operator prev_op = list_get(operators, operator, operators.length - 1);
-		u32 op_precedence = op.paren_level * 2 + op.precedence;
-		u32 prev_op_precedence = prev_op.paren_level * 2 + prev_op.precedence;
+		u32 op_precedence = op.paren_level * PREC_POSTFIX + op.precedence;
+		u32 prev_op_precedence = prev_op.paren_level * PREC_POSTFIX + prev_op.precedence;
 
 		if (!operators.length) {
 			list_push(operators, op);

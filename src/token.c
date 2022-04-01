@@ -31,11 +31,11 @@ List tokenize_text(char *text, u32 length) {
 
 	for (int i = 0; i < length; ++i) {
 		token t = {0};
-		char c = text[i];
+		char *c = text + i;
 
-		if (is_whitespace(c)) continue;
+		if (is_whitespace(*c)) continue;
 
-		if (is_digit(c)) {
+		if (is_digit(*c)) {
 			t.type = TOKEN_INT;
 			u32 int_len = int_str_len(text + i);
 			t.value = int_from_str(text + i, int_len);
@@ -48,7 +48,7 @@ List tokenize_text(char *text, u32 length) {
 		if (i > 0)
 			prev_token = list_get(token_list, token, token_list.length - 1);
 
-		switch (c) {
+		switch (*c) {
 			case '+': {
 				t.type = TOKEN_PLUS;
 				if (prev_token.type != TOKEN_INT) {
@@ -72,6 +72,20 @@ List tokenize_text(char *text, u32 length) {
 			} break;
 			case ')': {
 				t.type = TOKEN_CLOSED_PARENTHESIS;
+			} break;
+			case '<': {
+				t.type = TOKEN_LT;
+				if (*(c + 1) == '=') {
+					t.type = TOKEN_LE;
+					i += 1;
+				}
+			} break;
+			case '>': {
+				t.type = TOKEN_GT;
+				if (*(c + 1) == '=') {
+					t.type = TOKEN_GE;
+					i += 1;
+				}
 			} break;
 		}
 

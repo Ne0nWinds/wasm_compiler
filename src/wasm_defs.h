@@ -28,6 +28,7 @@ enum {
 };
 
 enum {
+	// https://webassembly.github.io/spec/core/binary/instructions.html#numeric-instructions
 	WASM_I32_CONST = 0x41,
 	WASM_I64_CONST = 0x42,
 	WASM_F32_CONST = 0x43,
@@ -38,4 +39,14 @@ enum {
 	WASM_I32_MUL = 0x6C,
 	WASM_I32_DIV_S = 0x6D,
 	WASM_I32_DIV_U = 0x6E,
+
+	WASM_I32_LT_S = 0x48,
+	WASM_I32_LT_U = 0x49,
+	WASM_I32_GT_S = 0x4A,
+	WASM_I32_GT_U = 0x4B,
+
+	WASM_I32_LE_S = 0x4C,
+	WASM_I32_LE_U = 0x4D,
+	WASM_I32_GE_S = 0x4E,
+	WASM_I32_GE_U = 0x4F,
 };

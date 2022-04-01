@@ -30,6 +30,11 @@ async function runTestCases(instance) {
 		'+10', 10,
 		'255', 255,
 		'1024 * 1024', 1048576,
+		'2 > 5', 0,
+		'2 < 5', 1,
+		'5 >= 5', 1,
+		'2 <= 5', 1,
+		'25 * 4 < 25 * 4 + 8', 1
 	];
 
 	const { length } = test_cases;
@@ -64,7 +69,7 @@ async function compile(val) {
 
 	const length = compiler.compile(compile_text_ptr, view.byteLength) | 0;
 	const binary = new Uint8Array(compiler.memory.buffer, compiler.get_wasm_binary(), length);
-	// console.log(binary);
+	console.log(binary);
 	const { instance } = await WebAssembly.instantiate(binary);
 
 	const value = instance.exports.main();

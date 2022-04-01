@@ -12,6 +12,12 @@ typedef enum {
 	TOKEN_CLOSED_PARENTHESIS,
 	TOKEN_NEGATIVE,
 	TOKEN_POSITIVE,
+	TOKEN_EQ,
+	TOKEN_NE,
+	TOKEN_LT,
+	TOKEN_LE,
+	TOKEN_GT,
+	TOKEN_GE,
 } token_type;
 
 typedef struct token token;

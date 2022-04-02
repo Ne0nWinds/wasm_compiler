@@ -49,4 +49,6 @@ enum {
 	WASM_I32_LE_U = 0x4D,
 	WASM_I32_GE_S = 0x4E,
 	WASM_I32_GE_U = 0x4F,
+
+	WASM_DROP = 0x1A
 };

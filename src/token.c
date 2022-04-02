@@ -23,13 +23,15 @@ int int_from_str(char *text, u32 length) {
 	return value;
 }
 
-List token_list = {0};
+static List token_list = {0};
 
-List tokenize_text(char *text, u32 length) {
+List tokenize_text(char *text, u32 length, bool *unexpected_token) {
+	*unexpected_token = false;
 	token_list.length = 0;
 	token_list.start = bump_get();
 
-	for (int i = 0; i < length; ++i) {
+	int i = 0;
+	for (; i < length; ++i) {
 		token t = {0};
 		char *c = text + i;
 
@@ -87,11 +89,19 @@ List tokenize_text(char *text, u32 length) {
 					i += 1;
 				}
 			} break;
+			case ';': {
+				t.type = TOKEN_SEMICOLON;
+			} break;
+			default: {
+				*unexpected_token = true;
+				goto end;
+			}
 		}
 
 		list_add(token_list, t);
 	}
-	bump_move(token_list.length * sizeof(token));
 
+end:
+	bump_move(token_list.length * sizeof(token));
 	return token_list;
 }

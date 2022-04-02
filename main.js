@@ -9,32 +9,34 @@ const disassembleElement = document.getElementById("disassemble");
 
 async function runTestCases(instance) {
 	const test_cases = [
-		'5', 5,
-		'2+2', 4,
-		'22+28', 50,
-		'50 - 50 + 25', 25,
-		'       50              - 50          + 25     \n', 25,
-		'10 / 2', 5,
-		'2 * 8 + 1', 17,
-		'2 * 8 / 2', 8,
-		'10 / 5 + 32 - 1', 33,
-		'1 + 2 * 8', 17,
-		'2 + 5 * 3 - 1', 16,
-		'6 / 2 * 10 + 45 - 20 * 2', 35,
-		'2 + 8 - 1 + 5 * 2 + 4 / 2 * 8', 35,
-		'1 + (2 + 5) * 3 + 1', 23,
-		'2 + (24 / ( 4 + 4 )) * 3', 11,
-		'-2', -2,
-		'-2 + 42', 40,
-		'2 + -(24 / ( 4 + 4 )) * 3', -7,
-		'+10', 10,
-		'255', 255,
-		'1024 * 1024', 1048576,
-		'2 > 5', 0,
-		'2 < 5', 1,
-		'5 >= 5', 1,
-		'2 <= 5', 1,
-		'25 * 4 < 25 * 4 + 8', 1
+		'5;', 5,
+		'2+2;', 4,
+		'22+28;', 50,
+		'50 - 50 + 25;', 25,
+		'       50              - 50          + 25  ;   \n', 25,
+		'10 / 2;', 5,
+		'2 * 8 + 1;', 17,
+		'2 * 8 / 2;', 8,
+		'10 / 5 + 32 - 1;', 33,
+		'1 + 2 * 8;', 17,
+		'2 + 5 * 3 - 1;', 16,
+		'6 / 2 * 10 + 45 - 20 * 2;', 35,
+		'2 + 8 - 1 + 5 * 2 + 4 / 2 * 8;', 35,
+		'1 + (2 + 5) * 3 + 1;', 23,
+		'2 + (24 / ( 4 + 4 )) * 3;', 11,
+		'-2;', -2,
+		'-2 + 42;', 40,
+		'2 + -(24 / ( 4 + 4 )) * 3;', -7,
+		'+10;', 10,
+		'255;', 255,
+		'1024 * 1024;', 1048576,
+		'2 > 5;', 0,
+		'2 < 5;', 1,
+		'5 >= 5;', 1,
+		'2 <= 5;', 1,
+		'25 * 4 < 25 * 4 + 8;', 1,
+		'5; 10;', 10,
+		'25 * 4 < 25 * 4 + 8; 10; 2 + (24 / ( 4 + 4 )) * 3;', 11,
 	];
 
 	const { length } = test_cases;
@@ -46,7 +48,13 @@ async function runTestCases(instance) {
 		const actualValue = await compile(test_cases[i]);
 		const expectedValue = test_cases[i + 1];
 
-		if (expectedValue != actualValue) {
+		if (actualValue == null) {
+			console.clear();
+			console.log("=== Test Case Failed ===");
+			console.log(`${test_cases[i]}\nCompilation Failure`);
+			break;
+		} else if (expectedValue != actualValue) {
+			console.clear();
 			console.log("=== Test Case Failed ===");
 			console.log(`${test_cases[i]}\nExpected Value: ${expectedValue}\nActual Value: ${actualValue}`);
 			break;
@@ -68,8 +76,11 @@ async function compile(val) {
 	text_encoder.encodeInto(val, view);
 
 	const length = compiler.compile(compile_text_ptr, view.byteLength) | 0;
+	if (!length) {
+		return null;
+	}
 	const binary = new Uint8Array(compiler.memory.buffer, compiler.get_wasm_binary(), length);
-	console.log(binary);
+	// console.log(binary);
 	const { instance } = await WebAssembly.instantiate(binary);
 
 	const value = instance.exports.main();

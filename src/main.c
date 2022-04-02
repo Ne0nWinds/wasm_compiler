@@ -96,29 +96,11 @@ u8 *token_to_op(u32 token_type, u8 *binary) {
 	return binary + byte_length;
 }
 
-__attribute__((export_name("compile")))
-int compile(char *text, u32 length) {
+static List token_list = {0};
+static token *current_token = 0;
+static bool error_occurred = 0;
 
-	wasm_binary = bump_alloc(1024 * 32);
-
-	u8 *c = wasm_binary;
-	c = wasm_header(c);
-	c = create_main_function(c);
-
-	List token_list = tokenize_text(text, length);
-
-	c[0] = WASM_SECTION_CODE;
-	c[1] = 0x3;
-	c[2] = 0x1; // vec(code)
-	c[3] = 0x1;
-	c[4] = 0x0;
-
-	u8 *code_section_length = c + 1;
-	u8 *code_section_length2 = c + 3;
-
-	c += 5;
-
-	u8 *code_start = c;
+u8 *expr(u8 *c) {
 
 	List operators = {
 		.length = 0,
@@ -152,14 +134,16 @@ int compile(char *text, u32 length) {
 
 	u32 current_paren_level = 0;
 
-	for (u32 i = 0; i < token_list.length; ++i) {
+	for (; current_token - (token *)token_list.start < token_list.length; ++current_token) {
 
-		token t = list_get(token_list, token, i);
+		token t = *current_token;
+
+		if (t.type == TOKEN_SEMICOLON) break;
 
 		if (t.type == TOKEN_INT) {
 			*c++ = WASM_I32_CONST;
 			int length = 0;
-			EncodeLEB128(c, list_get(token_list, token, i).value, length);
+			EncodeLEB128(c, t.value, length);
 			c += length;
 			continue;
 		}
@@ -238,11 +222,61 @@ int compile(char *text, u32 length) {
 		c = token_to_op(op.token_type, c);
 	}
 
+	return c;
+}
+
+u8 *expr_stmt(u8 *c) {
+	u8 *expr_code = expr(c);
+	if (current_token->type == TOKEN_SEMICOLON) {
+		current_token += 1;
+	} else {
+		error_occurred = true;
+	}
+	return expr_code;
+}
+
+__attribute__((export_name("compile")))
+int compile(char *text, u32 length) {
+
+	error_occurred = false;
+	wasm_binary = bump_alloc(1024 * 32);
+
+	u8 *c = wasm_binary;
+	c = wasm_header(c);
+	c = create_main_function(c);
+
+	bool unexpected_token = false;
+	token_list = tokenize_text(text, length, &unexpected_token);
+
+	current_token = token_list.start;
+
+	c[0] = WASM_SECTION_CODE;
+	c[1] = 0x3;
+	c[2] = 0x1; // vec(code)
+	c[3] = 0x1;
+	c[4] = 0x0;
+
+	u8 *code_section_length = c + 1;
+	u8 *code_section_length2 = c + 3;
+
+	c += 5;
+
+	u8 *code_start = c;
+
+	while (current_token - (token *)token_list.start < token_list.length) {
+		c = expr_stmt(c);
+		*c++ = WASM_DROP;
+	}
+
+	// remove last drop command
+	c -= 1;
 	*c++ = 0xB;
 
 	*code_section_length += c - code_start;
 	*code_section_length2 += c - code_start;
 
+	if (error_occurred)
+		return 0;
 	return c - wasm_binary;
 }
 

@@ -41,6 +41,8 @@ async function runTestCases(instance) {
 		'a = 25 * 4 + 2; a; a;', 102,
 		'a = 5; b = 10; a = a + b + 1; a;', 16,
 		'a = 5; b = 10; a = a + b + 1; -a;', -16,
+		'a = b = 3; a + b;', 6,
+		'a = b = 3 * 2; -a + b * 2;', 6,
 	];
 
 	const { length } = test_cases;
@@ -71,6 +73,8 @@ async function runTestCases(instance) {
 	}
 }
 
+let binary;
+
 async function compile(val) {
 	const text_encoder = new TextEncoder('utf-8');
 
@@ -83,8 +87,7 @@ async function compile(val) {
 	if (!length) {
 		return null;
 	}
-	const binary = new Uint8Array(compiler.memory.buffer, compiler.get_wasm_binary(), length);
-	console.log(binary);
+	binary = new Uint8Array(compiler.memory.buffer, compiler.get_wasm_binary(), length);
 	const { instance } = await WebAssembly.instantiate(binary);
 
 	const value = instance.exports.main();
@@ -97,3 +100,24 @@ runElement.onclick = async () => {
 	console.log(value);
 }
 runTestCases();
+
+let binaryExplorerEventListener = null;
+disassembleElement.onclick = async () => {
+	if (binary && !binaryExplorerEventListener) {
+		const dst = "https://wasdk.github.io/wasmcodeexplorer/?api=postmessage";
+		const windowName = "BinaryExplorer";
+		window.open(dst, "Binary Explorer", "popup");
+		const binaryCopy = new Uint8Array(binary);
+		binaryExplorerEventListener = (e) => {
+			if (e.data.type == "wasmexplorer-ready") {
+				window.removeEventListener("message", binaryExplorerEventListener, false);
+				binaryExplorerEventListener = null;
+				e.source.postMessage({
+					type: "wasmexplorer-load",
+					data: binaryCopy
+				}, "*", [binaryCopy.buffer]);
+			}
+		};
+		window.addEventListener("message", binaryExplorerEventListener, false);
+	}
+}

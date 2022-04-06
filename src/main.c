@@ -101,10 +101,14 @@ u8 *token_to_op(u32 token_type, u8 *binary) {
 			*binary = WASM_I32_GE_S;
 		} break;
 		case TOKEN_ASSIGN: {
-			byte_length = 3;
+			byte_length = 6;
 			*binary = WASM_I32_STORE;
 			binary[1] = 2;
 			binary[2] = 0;
+			binary[3] = WASM_I32_LOAD;
+			binary[4] = 2;
+			binary[5] = 0;
+			depth += 1;
 		} break;
 	}
 	return binary + byte_length;
@@ -165,12 +169,12 @@ u8 *expr(u8 *c) {
 
 		if (t.type == TOKEN_IDENTIFIER) {
 			int offset = (t.identifier.name[0] - 'a' + 1) * 4;
+			*c++ = WASM_I32_CONST;
+			*c++ = offset;
 			if ((current_token + 1)->type == TOKEN_ASSIGN) {
 				*c++ = WASM_I32_CONST;
 				*c++ = offset;
 			} else {
-				*c++ = WASM_I32_CONST;
-				*c++ = offset;
 				*c++ = WASM_I32_LOAD;
 				*c++ = 2;
 				*c++ = 0;
@@ -239,6 +243,11 @@ u8 *expr(u8 *c) {
 		}
 
 		if (op_precedence > prev_op_precedence) {
+			list_push(operators, op);
+			continue;
+		}
+
+		if (op_precedence == PREC_ASSIGN && op_precedence == prev_op_precedence) {
 			list_push(operators, op);
 			continue;
 		}

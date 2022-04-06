@@ -18,13 +18,21 @@ typedef enum {
 	TOKEN_LE,
 	TOKEN_GT,
 	TOKEN_GE,
-	TOKEN_SEMICOLON
+	TOKEN_SEMICOLON,
+	TOKEN_IDENTIFIER,
+	TOKEN_ASSIGN
 } token_type;
 
 typedef struct token token;
 struct token {
 	token_type type;
-	int value;
+	union {
+		struct {
+			char *name;
+			u32 length;
+		} identifier;
+		int value;
+	};
 };
 
 List tokenize_text(char *text, u32 length, bool *unexpected_token);

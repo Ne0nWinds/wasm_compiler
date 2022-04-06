@@ -4,6 +4,8 @@
 
 #define is_digit(c) (c >= '0' && c <= '9')
 #define is_whitespace(c) (c == ' ' || c == '\t' || c == '\r' || c == '\n')
+#define is_alpha(c) ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
+#define is_alpha_numeric(c) (is_digit(c) || is_alpha(c))
 
 u32 int_str_len(char *text) {
 	char *text2 = text;
@@ -46,6 +48,14 @@ List tokenize_text(char *text, u32 length, bool *unexpected_token) {
 			continue;
 		}
 
+		if (is_alpha(*c)) {
+			t.type = TOKEN_IDENTIFIER;
+			t.identifier.name = c;
+			t.identifier.length = 1;
+			list_add(token_list, t);
+			continue;
+		}
+
 		token prev_token = {0};
 		if (i > 0)
 			prev_token = list_get(token_list, token, token_list.length - 1);
@@ -53,13 +63,13 @@ List tokenize_text(char *text, u32 length, bool *unexpected_token) {
 		switch (*c) {
 			case '+': {
 				t.type = TOKEN_PLUS;
-				if (prev_token.type != TOKEN_INT) {
+				if (prev_token.type != TOKEN_INT && prev_token.type != TOKEN_IDENTIFIER) {
 					t.type = TOKEN_POSITIVE;
 				}
 			} break;
 			case '-': {
 				t.type = TOKEN_MINUS;
-				if (prev_token.type != TOKEN_INT) {
+				if (prev_token.type != TOKEN_INT && prev_token.type != TOKEN_IDENTIFIER) {
 					t.type = TOKEN_NEGATIVE;
 				}
 			} break;
@@ -89,6 +99,20 @@ List tokenize_text(char *text, u32 length, bool *unexpected_token) {
 					i += 1;
 				}
 			} break;
+			case '!': {
+				// t.type == NOT operator
+				if (*(c + 1) == '=') {
+					t.type = TOKEN_NE;
+					i += 1;
+				}
+			} break;
+			case '=': {
+				t.type = TOKEN_ASSIGN;
+				if (*(c + 1) == '=') {
+					t.type = TOKEN_EQ;
+					i += 1;
+				}
+			} break;
 			case ';': {
 				t.type = TOKEN_SEMICOLON;
 			} break;
@@ -99,7 +123,7 @@ List tokenize_text(char *text, u32 length, bool *unexpected_token) {
 		}
 
 		list_add(token_list, t);
-	}
+}
 
 end:
 	bump_move(token_list.length * sizeof(token));

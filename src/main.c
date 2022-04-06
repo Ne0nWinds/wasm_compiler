@@ -38,11 +38,16 @@ static u8 *create_main_function(u8 *binary) {
 
 	binary[0] = WASM_SECTION_FUNC;
 	binary[1] = 0x2;
-
 	binary[2] = 0x1;
 	binary[3] = 0x0;
 	binary += 4;
 
+	binary[0] = WASM_SECTION_MEMORY;
+	binary[1] = 3;
+	binary[2] = 1;
+	binary[3] = 0;
+	binary[4] = 1;
+	binary += 5;
 
 	binary[0] = WASM_SECTION_EXPORT;
 	binary[1] = 0x8;
@@ -60,8 +65,11 @@ static u8 *create_main_function(u8 *binary) {
 	return binary;
 }
 
+u32 depth = 0;
+
 u8 *token_to_op(u32 token_type, u8 *binary) {
 	u32 byte_length = 1;
+	depth -= 1;
 	switch (token_type) {
 		case TOKEN_PLUS: {
 			*binary = WASM_I32_ADD;
@@ -91,6 +99,12 @@ u8 *token_to_op(u32 token_type, u8 *binary) {
 		} break;
 		case TOKEN_GE: {
 			*binary = WASM_I32_GE_S;
+		} break;
+		case TOKEN_ASSIGN: {
+			byte_length = 3;
+			*binary = WASM_I32_STORE;
+			binary[1] = 2;
+			binary[2] = 0;
 		} break;
 	}
 	return binary + byte_length;
@@ -145,6 +159,23 @@ u8 *expr(u8 *c) {
 			int length = 0;
 			EncodeLEB128(c, t.value, length);
 			c += length;
+			depth += 1;
+			continue;
+		}
+
+		if (t.type == TOKEN_IDENTIFIER) {
+			int offset = (t.identifier.name[0] - 'a' + 1) * 4;
+			if ((current_token + 1)->type == TOKEN_ASSIGN) {
+				*c++ = WASM_I32_CONST;
+				*c++ = offset;
+			} else {
+				*c++ = WASM_I32_CONST;
+				*c++ = offset;
+				*c++ = WASM_I32_LOAD;
+				*c++ = 2;
+				*c++ = 0;
+				depth += 1;
+			}
 			continue;
 		}
 
@@ -189,6 +220,9 @@ u8 *expr(u8 *c) {
 			case TOKEN_GT:
 			case TOKEN_GE: {
 				op.precedence = PREC_RELATIONAL;
+			} break;
+			case TOKEN_ASSIGN: {
+				op.precedence = PREC_ASSIGN;
 			} break;
 			case TOKEN_POSITIVE: {
 				continue;
@@ -263,13 +297,16 @@ int compile(char *text, u32 length) {
 
 	u8 *code_start = c;
 
+	depth = 0;
 	while (current_token - (token *)token_list.start < token_list.length) {
 		c = expr_stmt(c);
-		*c++ = WASM_DROP;
+		if (depth > 0)
+			*c++ = WASM_DROP;
 	}
 
-	// remove last drop command
-	c -= 1;
+	if (depth != 0)
+		c -= 1;
+
 	*c++ = 0xB;
 
 	*code_section_length += c - code_start;

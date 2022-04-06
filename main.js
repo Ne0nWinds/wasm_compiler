@@ -37,6 +37,10 @@ async function runTestCases(instance) {
 		'25 * 4 < 25 * 4 + 8;', 1,
 		'5; 10;', 10,
 		'25 * 4 < 25 * 4 + 8; 10; 2 + (24 / ( 4 + 4 )) * 3;', 11,
+		'a = 50; a;', 50,
+		'a = 25 * 4 + 2; a; a;', 102,
+		'a = 5; b = 10; a = a + b + 1; a;', 16,
+		'a = 5; b = 10; a = a + b + 1; -a;', -16,
 	];
 
 	const { length } = test_cases;
@@ -80,7 +84,7 @@ async function compile(val) {
 		return null;
 	}
 	const binary = new Uint8Array(compiler.memory.buffer, compiler.get_wasm_binary(), length);
-	// console.log(binary);
+	console.log(binary);
 	const { instance } = await WebAssembly.instantiate(binary);
 
 	const value = instance.exports.main();

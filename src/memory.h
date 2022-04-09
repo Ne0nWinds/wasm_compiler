@@ -12,7 +12,6 @@ void bump_reset();
 typedef struct List List;
 struct List {
 	u32 length;
-	u32 item_size;
 	void *start;
 };
 

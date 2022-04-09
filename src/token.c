@@ -5,7 +5,8 @@
 #define is_digit(c) (c >= '0' && c <= '9')
 #define is_whitespace(c) (c == ' ' || c == '\t' || c == '\r' || c == '\n')
 #define is_alpha(c) ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
-#define is_alpha_numeric(c) (is_digit(c) || is_alpha(c))
+#define is_alpha_numeric(c) (is_digit(c) || is_alpha(c) || c == '_')
+#define is_ident(c) (is_alpha(c) || c == '_')
 
 u32 int_str_len(char *text) {
 	char *text2 = text;
@@ -48,10 +49,18 @@ List tokenize_text(char *text, u32 length, bool *unexpected_token) {
 			continue;
 		}
 
-		if (is_alpha(*c)) {
+		if (is_ident(*c)) {
 			t.type = TOKEN_IDENTIFIER;
 			t.identifier.name = c;
-			t.identifier.length = 1;
+			u32 length = 0;
+
+			do {
+				c += 1;
+				length += 1;
+			} while (is_alpha_numeric(*c));
+
+			t.identifier.length = length;
+			i += length - 1;
 			list_add(token_list, t);
 			continue;
 		}

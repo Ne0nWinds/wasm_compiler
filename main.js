@@ -43,6 +43,9 @@ async function runTestCases(instance) {
 		'a = 5; b = 10; a = a + b + 1; -a;', -16,
 		'a = b = 3; a + b;', 6,
 		'a = b = 3 * 2; -a + b * 2;', 6,
+		'abc = 5; abc;', 5,
+		'a1 = 2; a2 = 4; a1;', 2,
+		'qwerty = 2900; uiop = 500; qwerty + -uiop;', 2400,
 	];
 
 	const { length } = test_cases;

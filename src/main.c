@@ -118,8 +118,44 @@ static List token_list = {0};
 static token *current_token = 0;
 static bool error_occurred = 0;
 
-u8 *expr(u8 *c) {
+typedef struct variable variable;
+struct variable {
+	char *name;
+	u32 length;
+	u32 memory_location;
+};
+static List variables = {0};
 
+bool string_compare(char *a, char *b, u32 n) {
+	for (int i = 0; i < n; ++i) {
+		if (a[i] != b[i]) return false;
+	}
+	return true;
+}
+
+variable *find_variable(char *name, u32 length) {
+	for (u32 i = 0; i < variables.length; ++i) {
+		variable *v = (variable *)(variables.start) + i;
+
+		if (v->length != length) continue;
+		if (string_compare(v->name, name, length)) return v;
+	}
+	return 0;
+}
+
+u32 current_var_location;
+variable *create_variable(char *name, u32 length) {
+	current_var_location += 4;
+	variable new_var = {
+		.name = name,
+		.length = length,
+		.memory_location = current_var_location
+	};
+	list_push(variables, new_var);
+	return ((variable *)variables.start) + (variables.length - 1);
+}
+
+u8 *expr(u8 *c) {
 	List operators = {
 		.length = 0,
 		.start = bump_get()
@@ -168,12 +204,15 @@ u8 *expr(u8 *c) {
 		}
 
 		if (t.type == TOKEN_IDENTIFIER) {
-			int offset = (t.identifier.name[0] - 'a' + 1) * 4;
+			variable *v = find_variable(t.identifier.name, t.identifier.length);
+			if (!v)
+				v = create_variable(t.identifier.name, t.identifier.length);
+
 			*c++ = WASM_I32_CONST;
-			*c++ = offset;
+			*c++ = v->memory_location;
 			if ((current_token + 1)->type == TOKEN_ASSIGN) {
 				*c++ = WASM_I32_CONST;
-				*c++ = offset;
+				*c++ = v->memory_location;
 			} else {
 				*c++ = WASM_I32_LOAD;
 				*c++ = 2;
@@ -280,6 +319,10 @@ u8 *expr_stmt(u8 *c) {
 
 __attribute__((export_name("compile")))
 int compile(char *text, u32 length) {
+
+	current_var_location = 4;
+	variables.length = 0;
+	variables.start = bump_alloc(128 * sizeof(variable));
 
 	error_occurred = false;
 	wasm_binary = bump_alloc(1024 * 32);

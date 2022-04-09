@@ -56,5 +56,7 @@ enum {
 	WASM_I32_LOAD = 0x28,
 	WASM_I64_LOAD = 0x29,
 
-	WASM_DROP = 0x1A
+	WASM_DROP = 0x1A,
+
+	WASM_RETURN = 0x0F
 };

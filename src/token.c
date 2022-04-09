@@ -28,6 +28,12 @@ int int_from_str(char *text, u32 length) {
 
 static List token_list = {0};
 
+static void convert_to_keyword(token *t) {
+	if (string_compare(t->identifier.name, "return", 6)) {
+		t->type = TOKEN_RETURN;
+	}
+}
+
 List tokenize_text(char *text, u32 length, bool *unexpected_token) {
 	*unexpected_token = false;
 	token_list.length = 0;
@@ -61,6 +67,9 @@ List tokenize_text(char *text, u32 length, bool *unexpected_token) {
 
 			t.identifier.length = length;
 			i += length - 1;
+
+			convert_to_keyword(&t);
+
 			list_add(token_list, t);
 			continue;
 		}

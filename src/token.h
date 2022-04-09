@@ -20,7 +20,10 @@ typedef enum {
 	TOKEN_GE,
 	TOKEN_SEMICOLON,
 	TOKEN_IDENTIFIER,
-	TOKEN_ASSIGN
+	TOKEN_KEYWORD,
+	TOKEN_ASSIGN,
+	TOKEN_RETURN,
+
 } token_type;
 
 typedef struct token token;

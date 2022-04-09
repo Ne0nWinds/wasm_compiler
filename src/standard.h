@@ -29,3 +29,7 @@ typedef enum bool {
 	byte &= 0x7F;\
 	*(src - 1) = byte;\
 }
+
+#define len(a) (sizeof(a) / sizeof(*a))
+
+bool string_compare(char *a, char *b, u32 n);

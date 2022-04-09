@@ -110,6 +110,9 @@ u8 *token_to_op(u32 token_type, u8 *binary) {
 			binary[5] = 0;
 			depth += 1;
 		} break;
+		case TOKEN_RETURN: {
+			*binary = WASM_RETURN;
+		} break;
 	}
 	return binary + byte_length;
 }
@@ -125,13 +128,6 @@ struct variable {
 	u32 memory_location;
 };
 static List variables = {0};
-
-bool string_compare(char *a, char *b, u32 n) {
-	for (int i = 0; i < n; ++i) {
-		if (a[i] != b[i]) return false;
-	}
-	return true;
-}
 
 variable *find_variable(char *name, u32 length) {
 	for (u32 i = 0; i < variables.length; ++i) {
@@ -266,6 +262,9 @@ u8 *expr(u8 *c) {
 			} break;
 			case TOKEN_ASSIGN: {
 				op.precedence = PREC_ASSIGN;
+			} break;
+			case TOKEN_RETURN: {
+				op.precedence = 0;
 			} break;
 			case TOKEN_POSITIVE: {
 				continue;

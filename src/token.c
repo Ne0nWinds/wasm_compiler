@@ -134,6 +134,12 @@ List tokenize_text(char *text, u32 length, bool *unexpected_token) {
 			case ';': {
 				t.type = TOKEN_SEMICOLON;
 			} break;
+			case '{': {
+				t.type = TOKEN_OPEN_BRACKET;
+			} break;
+			case '}': {
+				t.type = TOKEN_CLOSED_BRACKET;
+			} break;
 			default: {
 				*unexpected_token = true;
 				goto end;

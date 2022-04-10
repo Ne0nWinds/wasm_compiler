@@ -306,14 +306,50 @@ u8 *expr(u8 *c) {
 	return c;
 }
 
-u8 *expr_stmt(u8 *c) {
-	u8 *expr_code = expr(c);
-	if (current_token->type == TOKEN_SEMICOLON) {
+void expect_token(token *t, token_type type) {
+	if (t->type == type) {
 		current_token += 1;
 	} else {
 		error_occurred = true;
 	}
+}
+
+u8 *expr_stmt(u8 *c) {
+	u8 *expr_code = expr(c);
+	expect_token(current_token, TOKEN_SEMICOLON);
 	return expr_code;
+}
+
+u8 *compound_stmt(u8 *c) {
+	depth = 0;
+
+	u32 bracket_depth = 1;
+	expect_token(current_token, TOKEN_OPEN_BRACKET);
+
+	while (current_token - (token *)token_list.start < token_list.length && !error_occurred) {
+		if (current_token->type == TOKEN_OPEN_BRACKET) {
+			bracket_depth += 1;
+			current_token += 1;
+			continue;
+		}
+		if (current_token->type == TOKEN_CLOSED_BRACKET) {
+			bracket_depth -= 1;
+			current_token += 1;
+			continue;
+		}
+
+		c = expr_stmt(c);
+
+		if (depth > 0)
+			*c++ = WASM_DROP;
+	}
+
+	if (bracket_depth != 0)
+		error_occurred = true;
+
+	if (depth != 0)
+		c -= 1;
+	return c;
 }
 
 __attribute__((export_name("compile")))
@@ -348,15 +384,7 @@ int compile(char *text, u32 length) {
 
 	u8 *code_start = c;
 
-	depth = 0;
-	while (current_token - (token *)token_list.start < token_list.length) {
-		c = expr_stmt(c);
-		if (depth > 0)
-			*c++ = WASM_DROP;
-	}
-
-	if (depth != 0)
-		c -= 1;
+	c = compound_stmt(c);
 
 	*c++ = 0xB;
 

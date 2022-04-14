@@ -47,7 +47,9 @@ async function runTestCases(instance) {
 		'{ a1 = 2; a2 = 4; return a1; }', 2,
 		'{ qwerty = 2900; uiop = 500; return qwerty + -uiop; }', 2400,
 		'{ return 25; 50; }', 25,
-		'{ 2 + 2; { 8; } return 19; }', 19
+		'{ 2 + 2; { 8; } return 19; }', 19,
+		'{ if (1) return 29; return 5; }', 29,
+		'{ x = 100; y = 50;\n if (x > y) {\n y = x + y * 2;\n return y;\n }\nreturn 0;\n }', 200,
 	];
 
 	const { length } = test_cases;

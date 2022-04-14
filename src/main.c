@@ -225,8 +225,9 @@ u8 *expr(u8 *c) {
 		}
 
 		if (t.type == TOKEN_CLOSED_PARENTHESIS) {
-			// unwind stack to open paren
+			if (current_paren_level == 0) break;
 
+			// unwind stack to open paren
 			for (int i = operators.length - 1; i >= 0; --i) {
 				operator op = list_get(operators, operator, i);
 				if (op.paren_level != current_paren_level) break;
@@ -306,8 +307,8 @@ u8 *expr(u8 *c) {
 	return c;
 }
 
-void expect_token(token *t, token_type type) {
-	if (t->type == type) {
+void expect_token(token_type type) {
+	if (current_token->type == type) {
 		current_token += 1;
 	} else {
 		error_occurred = true;
@@ -316,25 +317,55 @@ void expect_token(token *t, token_type type) {
 
 u8 *expr_stmt(u8 *c) {
 	u8 *expr_code = expr(c);
-	expect_token(current_token, TOKEN_SEMICOLON);
+	expect_token(TOKEN_SEMICOLON);
 	return expr_code;
 }
 
 u8 *compound_stmt(u8 *c) {
 	depth = 0;
 
-	u32 bracket_depth = 1;
-	expect_token(current_token, TOKEN_OPEN_BRACKET);
+	// list of booleans, is_if
+	List code_blocks_stack = {
+		.length = 0,
+		.start = bump_get()
+	};
+
+	expect_token(TOKEN_OPEN_BRACKET);
+	list_push(code_blocks_stack, (u8)0);
+	bump_move(1);
 
 	while (current_token - (token *)token_list.start < token_list.length && !error_occurred) {
 		if (current_token->type == TOKEN_OPEN_BRACKET) {
-			bracket_depth += 1;
 			current_token += 1;
+			list_push(code_blocks_stack, (u8)0);
 			continue;
 		}
 		if (current_token->type == TOKEN_CLOSED_BRACKET) {
-			bracket_depth -= 1;
 			current_token += 1;
+			code_blocks_stack.length -= 1;
+			u8 is_code_block = list_get(code_blocks_stack, u8, code_blocks_stack.length);
+			if (is_code_block) *c++ = WASM_END;
+			continue;
+		}
+
+		if (current_token->type == TOKEN_IF) {
+			current_token += 1;
+			expect_token(TOKEN_OPEN_PARENTHESIS);
+			c = expr(c);
+			expect_token(TOKEN_CLOSED_PARENTHESIS);
+			*c++ = WASM_IF;
+			*c++ = 0x40;
+
+			if ((current_token)->type == TOKEN_OPEN_BRACKET) {
+				current_token += 1;
+				list_push(code_blocks_stack, (u8)1);
+				bump_move(1);
+			} else {
+				c = expr_stmt(c);
+				if (depth > 0)
+					*c++ = WASM_DROP;
+				*c++ = WASM_END;
+			}
 			continue;
 		}
 
@@ -344,8 +375,10 @@ u8 *compound_stmt(u8 *c) {
 			*c++ = WASM_DROP;
 	}
 
-	if (bracket_depth != 0)
+	if (code_blocks_stack.length != 0)
 		error_occurred = true;
+
+	bump_free(code_blocks_stack.start);
 
 	if (depth != 0)
 		c -= 1;
@@ -386,7 +419,7 @@ int compile(char *text, u32 length) {
 
 	c = compound_stmt(c);
 
-	*c++ = 0xB;
+	*c++ = WASM_END;
 
 	*code_section_length += c - code_start;
 	*code_section_length2 += c - code_start;

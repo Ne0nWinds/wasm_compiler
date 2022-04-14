@@ -25,6 +25,8 @@ typedef enum {
 	TOKEN_RETURN,
 	TOKEN_OPEN_BRACKET,
 	TOKEN_CLOSED_BRACKET,
+	TOKEN_IF,
+	TOKEN_ELSE,
 
 } token_type;
 

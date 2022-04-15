@@ -50,6 +50,10 @@ async function runTestCases(instance) {
 		'{ 2 + 2; { 8; } return 19; }', 19,
 		'{ if (1) return 29; return 5; }', 29,
 		'{ x = 100; y = 50;\n if (x > y) {\n y = x + y * 2;\n return y;\n }\nreturn 0;\n }', 200,
+		'{ if (1) return 5; else return 10; }', 5,
+		'{ if (0) return 5; else return 10; }', 10,
+		'{ x = 100; if (x > 55) { x = x * 3; return x; } else return 0; }', 300,
+		'{ x = 100; if (x <= 55) { x = x * 3; return x; } else { x = x / 2; return x + 1; } }', 51,
 	];
 
 	const { length } = test_cases;

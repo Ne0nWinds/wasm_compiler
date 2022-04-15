@@ -110,9 +110,6 @@ u8 *token_to_op(u32 token_type, u8 *binary) {
 			binary[5] = 0;
 			depth += 1;
 		} break;
-		case TOKEN_RETURN: {
-			*binary = WASM_RETURN;
-		} break;
 	}
 	return binary + byte_length;
 }
@@ -264,9 +261,6 @@ u8 *expr(u8 *c) {
 			case TOKEN_ASSIGN: {
 				op.precedence = PREC_ASSIGN;
 			} break;
-			case TOKEN_RETURN: {
-				op.precedence = 0;
-			} break;
 			case TOKEN_POSITIVE: {
 				continue;
 			} break;
@@ -330,6 +324,14 @@ u8 *compound_stmt(u8 *c) {
 		.start = bump_get()
 	};
 
+	enum {
+		BLOCK_NORMAL,
+		BLOCK_IF,
+		BLOCK_ELSE,
+		STMT_IF,
+		STMT_ELSE,
+	};
+
 	expect_token(TOKEN_OPEN_BRACKET);
 	list_push(code_blocks_stack, (u8)0);
 	bump_move(1);
@@ -337,14 +339,17 @@ u8 *compound_stmt(u8 *c) {
 	while (current_token - (token *)token_list.start < token_list.length && !error_occurred) {
 		if (current_token->type == TOKEN_OPEN_BRACKET) {
 			current_token += 1;
-			list_push(code_blocks_stack, (u8)0);
+			list_push(code_blocks_stack, (u8)BLOCK_NORMAL);
+			bump_move(1);
 			continue;
 		}
+
 		if (current_token->type == TOKEN_CLOSED_BRACKET) {
 			current_token += 1;
 			code_blocks_stack.length -= 1;
-			u8 is_code_block = list_get(code_blocks_stack, u8, code_blocks_stack.length);
-			if (is_code_block) *c++ = WASM_END;
+			u8 code_block = list_get(code_blocks_stack, u8, code_blocks_stack.length);
+			if (code_block != BLOCK_NORMAL && current_token->type != TOKEN_ELSE)
+				*c++ = WASM_END;
 			continue;
 		}
 
@@ -352,27 +357,71 @@ u8 *compound_stmt(u8 *c) {
 			current_token += 1;
 			expect_token(TOKEN_OPEN_PARENTHESIS);
 			c = expr(c);
+			depth -= 1;
 			expect_token(TOKEN_CLOSED_PARENTHESIS);
 			*c++ = WASM_IF;
-			*c++ = 0x40;
+			*c++ = 0x40; // this may have to be changed
 
 			if ((current_token)->type == TOKEN_OPEN_BRACKET) {
 				current_token += 1;
-				list_push(code_blocks_stack, (u8)1);
+				list_push(code_blocks_stack, (u8)BLOCK_IF);
 				bump_move(1);
 			} else {
-				c = expr_stmt(c);
-				if (depth > 0)
-					*c++ = WASM_DROP;
-				*c++ = WASM_END;
+				list_push(code_blocks_stack, (u8)STMT_IF);
+				bump_move(1);
 			}
 			continue;
 		}
 
+		if (current_token->type == TOKEN_ELSE) {
+			current_token += 1;
+			*c++ = WASM_ELSE;
+			u8 code_block = list_get(code_blocks_stack, u8, code_blocks_stack.length - 1);
+
+			// if (code_block != BLOCK_IF || code_block != STMT_IF) error_occurred = true;
+
+			if ((current_token)->type == TOKEN_OPEN_BRACKET) {
+				current_token += 1;
+				list_push(code_blocks_stack, (u8)BLOCK_ELSE);
+				bump_move(1);
+			} else {
+				list_push(code_blocks_stack, (u8)STMT_ELSE);
+				bump_move(1);
+			}
+			continue;
+		}
+
+		bool should_return = false;
+		if (current_token->type == TOKEN_RETURN) {
+			current_token += 1;
+			should_return = true;
+		}
+
 		c = expr_stmt(c);
 
-		if (depth > 0)
+		if (should_return) {
+			*c++ = WASM_RETURN;
+			depth -= 1;
+		}
+
+		if (depth > 0) {
 			*c++ = WASM_DROP;
+			depth -= 1;
+		}
+
+		u8 code_block = list_get(code_blocks_stack, u8, code_blocks_stack.length - 1);
+		if (code_block == STMT_ELSE) {
+			code_blocks_stack.length -= 2; // pop else and if off stack
+			*c++ = WASM_END;
+		} else if (code_block == STMT_IF && current_token->type != TOKEN_ELSE) {
+			code_blocks_stack.length -= 1;
+			*c++ = WASM_END;
+		}
+	}
+
+	if (depth == 0) {
+		*c++ = WASM_I32_CONST;
+		*c++ = 0;
 	}
 
 	if (code_blocks_stack.length != 0)

@@ -59,6 +59,7 @@ enum {
 	WASM_DROP = 0x1A,
 
 	WASM_IF = 0x04,
+	WASM_ELSE = 0x05,
 	WASM_RETURN = 0x0F,
 	WASM_END = 0x0B
 };

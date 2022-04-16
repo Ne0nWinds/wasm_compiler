@@ -346,10 +346,18 @@ u8 *compound_stmt(u8 *c) {
 
 		if (current_token->type == TOKEN_CLOSED_BRACKET) {
 			current_token += 1;
+
+			if (current_token->type == TOKEN_ELSE) continue;
+
+			u8 code_block = list_get(code_blocks_stack, u8, code_blocks_stack.length - 1);
 			code_blocks_stack.length -= 1;
-			u8 code_block = list_get(code_blocks_stack, u8, code_blocks_stack.length);
-			if (code_block != BLOCK_NORMAL && current_token->type != TOKEN_ELSE)
+
+			if (code_block == BLOCK_ELSE) {
 				*c++ = WASM_END;
+			}
+			if (code_block == BLOCK_IF && current_token->type != TOKEN_ELSE) {
+				*c++ = WASM_END;
+			}
 			continue;
 		}
 
@@ -376,6 +384,7 @@ u8 *compound_stmt(u8 *c) {
 		if (current_token->type == TOKEN_ELSE) {
 			current_token += 1;
 			*c++ = WASM_ELSE;
+			code_blocks_stack.length -= 1;
 			u8 code_block = list_get(code_blocks_stack, u8, code_blocks_stack.length - 1);
 
 			// if (code_block != BLOCK_IF || code_block != STMT_IF) error_occurred = true;
@@ -411,7 +420,7 @@ u8 *compound_stmt(u8 *c) {
 
 		u8 code_block = list_get(code_blocks_stack, u8, code_blocks_stack.length - 1);
 		if (code_block == STMT_ELSE) {
-			code_blocks_stack.length -= 2; // pop else and if off stack
+			code_blocks_stack.length -= 1; // pop else and if off stack
 			*c++ = WASM_END;
 		} else if (code_block == STMT_IF && current_token->type != TOKEN_ELSE) {
 			code_blocks_stack.length -= 1;

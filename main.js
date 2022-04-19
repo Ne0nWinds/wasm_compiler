@@ -54,6 +54,9 @@ async function runTestCases(instance) {
 		'{ if (0) return 5; else return 10; }', 10,
 		'{ x = 100; if (x > 55) { x = x * 3; return x; } else return 0; }', 300,
 		'{ x = 100; if (x <= 55) { x = x * 3; return x; } else { x = x / 2; return x + 1; } }', 51,
+		'{ for (i = 0; i < 10; i = i + 10); return i; }', 10,
+		'{ i = 0; y = 0; for (i = 25; i < 50; i = i + 1) { y = y + (20 - 19); } return i + y; }', 75,
+		'{ i = 100; j = 0; for (j = 0; j < i;) { j = j + (2 + (24 / ( 4 + 4 )) * 3) / 11; } return j; }', 100
 	];
 
 	const { length } = test_cases;

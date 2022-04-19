@@ -25,6 +25,7 @@ struct List {
 #define list_get(list, item_type, i) ((item_type *)list.start)[i]
 
 #define list_push(list, value) {\
-	((typeof(value) *)list.start)[list.length] = value;\
+	typeof(value) v = value;\
+	((typeof(value) *)list.start)[list.length] = v;\
 	list.length += 1;\
 }

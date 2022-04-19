@@ -149,16 +149,19 @@ variable *create_variable(char *name, u32 length) {
 }
 
 u8 *expr(u8 *c) {
-	List operators = {
-		.length = 0,
-		.start = bump_get()
-	};
 
 	typedef struct operator operator;
 	struct operator {
 		u8 paren_level;
 		u8 precedence;
 		u8 token_type;
+	};
+
+	static operator operators_data[128] = {0};
+
+	List operators = {
+		.length = 0,
+		.start = operators_data
 	};
 
 	enum {
@@ -318,44 +321,105 @@ u8 *expr_stmt(u8 *c) {
 u8 *compound_stmt(u8 *c) {
 	depth = 0;
 
-	// list of booleans, is_if
-	List code_blocks_stack = {
-		.length = 0,
-		.start = bump_get()
-	};
-
 	enum {
 		BLOCK_NORMAL,
 		BLOCK_IF,
 		BLOCK_ELSE,
-		STMT_IF,
-		STMT_ELSE,
+		BLOCK_FOR,
 	};
 
+	typedef struct code code;
+	struct code {
+		u8 *code;
+		u32 length;
+	};
+
+	typedef struct code_block code_block;
+	struct code_block {
+		u32 type;
+		union {
+			struct {
+				code condition;
+				code iteration;
+			} _for;
+		};
+	};
+
+	static code_block code_blocks_stack_data[128] = {0};
+
+	List code_blocks_stack = {
+		.length = 0,
+		.start = code_blocks_stack_data
+	};
+
+
+	code_block b = {BLOCK_NORMAL};
+
 	expect_token(TOKEN_OPEN_BRACKET);
-	list_push(code_blocks_stack, (u8)0);
-	bump_move(1);
+	list_push(code_blocks_stack, (code_block){BLOCK_NORMAL});
+
+	bump_move(sizeof(code_block));
 
 	while (current_token - (token *)token_list.start < token_list.length && !error_occurred) {
 		if (current_token->type == TOKEN_OPEN_BRACKET) {
 			current_token += 1;
-			list_push(code_blocks_stack, (u8)BLOCK_NORMAL);
-			bump_move(1);
+			list_push(code_blocks_stack, (code_block){BLOCK_NORMAL});
+			bump_move(sizeof(code_block));
 			continue;
 		}
 
-		if (current_token->type == TOKEN_CLOSED_BRACKET) {
+		if (current_token->type == TOKEN_CLOSED_BRACKET || current_token->type == TOKEN_SEMICOLON) {
+
+			code_block block;
+
+			if (current_token->type == TOKEN_SEMICOLON) {
+				block = list_get(code_blocks_stack, code_block, code_blocks_stack.length - 1);
+				if (block.type == BLOCK_NORMAL) {
+					current_token += 1;
+					continue;
+				}
+			}
+
+			if (current_token->type == TOKEN_CLOSED_BRACKET) {
+				block = list_get(code_blocks_stack, code_block, code_blocks_stack.length - 1);
+				if (block.type == BLOCK_NORMAL) {
+					code_blocks_stack.length -= 1;
+				} else {
+					error_occurred = true;
+					break;
+				}
+			}
+			
 			current_token += 1;
 
 			if (current_token->type == TOKEN_ELSE) continue;
+			if (code_blocks_stack.length == 0) continue;
 
-			u8 code_block = list_get(code_blocks_stack, u8, code_blocks_stack.length - 1);
+			block = list_get(code_blocks_stack, code_block, code_blocks_stack.length - 1);
+
+			if (block.type == BLOCK_NORMAL) continue;
+
 			code_blocks_stack.length -= 1;
 
-			if (code_block == BLOCK_ELSE) {
+			if (block.type == BLOCK_ELSE) {
 				*c++ = WASM_END;
 			}
-			if (code_block == BLOCK_IF && current_token->type != TOKEN_ELSE) {
+
+			if (block.type == BLOCK_FOR) {
+				__builtin_memcpy(c, block._for.iteration.code, block._for.iteration.length);
+				c += block._for.iteration.length;
+				*c++ = WASM_DROP;
+
+				__builtin_memcpy(c, block._for.condition.code, block._for.condition.length);
+				c += block._for.condition.length;
+				*c++ = WASM_BR_IF;
+				*c++ = 0;
+
+				*c++ = WASM_END;
+				*c++ = WASM_END;
+			}
+
+			if (block.type == BLOCK_IF && current_token->type != TOKEN_ELSE) {
 				*c++ = WASM_END;
 			}
 			continue;
@@ -370,14 +434,10 @@ u8 *compound_stmt(u8 *c) {
 			*c++ = WASM_IF;
 			*c++ = 0x40; // this may have to be changed
 
-			if ((current_token)->type == TOKEN_OPEN_BRACKET) {
-				current_token += 1;
-				list_push(code_blocks_stack, (u8)BLOCK_IF);
-				bump_move(1);
-			} else {
-				list_push(code_blocks_stack, (u8)STMT_IF);
-				bump_move(1);
-			}
+			code_block b = {0};
+			b.type = BLOCK_IF;
+			list_push(code_blocks_stack, b);
+			bump_move(sizeof(code_block));
 			continue;
 		}
 
@@ -385,18 +445,65 @@ u8 *compound_stmt(u8 *c) {
 			current_token += 1;
 			*c++ = WASM_ELSE;
 			code_blocks_stack.length -= 1;
-			u8 code_block = list_get(code_blocks_stack, u8, code_blocks_stack.length - 1);
+			code_block prev_block = list_get(code_blocks_stack, code_block, code_blocks_stack.length - 1);
 
-			// if (code_block != BLOCK_IF || code_block != STMT_IF) error_occurred = true;
+			// if (prev_block.type != BLOCK_IF || prev_block.type != STMT_IF) error_occurred = true;
 
-			if ((current_token)->type == TOKEN_OPEN_BRACKET) {
-				current_token += 1;
-				list_push(code_blocks_stack, (u8)BLOCK_ELSE);
-				bump_move(1);
-			} else {
-				list_push(code_blocks_stack, (u8)STMT_ELSE);
-				bump_move(1);
+			code_block b = {0};
+			b.type = BLOCK_ELSE;
+			list_push(code_blocks_stack, b);
+			bump_move(sizeof(code_block));
+			continue;
+		}
+
+		if (current_token->type == TOKEN_FOR) {
+			current_token += 1;
+			expect_token(TOKEN_OPEN_PARENTHESIS);
+
+			// init
+			c = expr_stmt(c);
+			if (depth > 0) {
+				*c++ = WASM_DROP;
+				depth -= 1;
 			}
+
+			// condition
+			u8 *condition = bump_get();
+			u8 *condition_end = expr_stmt(condition);
+			depth -= 1;
+			u32 condition_length = condition_end - condition;
+			bump_move(condition_length);
+
+			// iteration
+			u8 *iteration = bump_get();
+			u8 *iteration_end = expr(iteration);
+			depth -= 1;
+			u32 iteration_length = iteration_end - iteration;
+			bump_move(iteration_length);
+
+			expect_token(TOKEN_CLOSED_PARENTHESIS);
+
+			code_block for_block = {0};
+			for_block.type = BLOCK_FOR;
+			for_block._for.condition.code = condition;
+			for_block._for.condition.length = condition_length;
+			for_block._for.iteration.code = iteration;
+			for_block._for.iteration.length = iteration_length;
+
+			list_push(code_blocks_stack, for_block);
+
+			*c++ = WASM_BLOCK;
+			*c++ = 0x40;
+			__builtin_memcpy(c, condition, condition_length);
+			c += condition_length;
+			*c++ = WASM_I32_CONST;
+			*c++ = 1;
+			*c++ = WASM_I32_NE;
+			*c++ = WASM_BR_IF;
+			*c++ = 0;
+			*c++ = WASM_LOOP;
+			*c++ = 0x40;
+
 			continue;
 		}
 
@@ -406,7 +513,7 @@ u8 *compound_stmt(u8 *c) {
 			should_return = true;
 		}
 
-		c = expr_stmt(c);
+		c = expr(c);
 
 		if (should_return) {
 			*c++ = WASM_RETURN;
@@ -418,14 +525,6 @@ u8 *compound_stmt(u8 *c) {
 			depth -= 1;
 		}
 
-		u8 code_block = list_get(code_blocks_stack, u8, code_blocks_stack.length - 1);
-		if (code_block == STMT_ELSE) {
-			code_blocks_stack.length -= 1; // pop else and if off stack
-			*c++ = WASM_END;
-		} else if (code_block == STMT_IF && current_token->type != TOKEN_ELSE) {
-			code_blocks_stack.length -= 1;
-			*c++ = WASM_END;
-		}
 	}
 
 	if (depth == 0) {

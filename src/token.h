@@ -27,6 +27,7 @@ typedef enum {
 	TOKEN_CLOSED_BRACKET,
 	TOKEN_IF,
 	TOKEN_ELSE,
+	TOKEN_FOR,
 
 } token_type;
 

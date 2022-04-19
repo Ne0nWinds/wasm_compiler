@@ -40,6 +40,10 @@ static void convert_to_keyword(token *t) {
 	if (string_compare(t->identifier.name, "else", 4)) {
 		t->type = TOKEN_ELSE;
 	}
+
+	if (string_compare(t->identifier.name, "for", 3)) {
+		t->type = TOKEN_FOR;
+	}
 }
 
 List tokenize_text(char *text, u32 length, bool *unexpected_token) {

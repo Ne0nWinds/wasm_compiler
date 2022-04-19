@@ -40,6 +40,9 @@ enum {
 	WASM_I32_DIV_S = 0x6D,
 	WASM_I32_DIV_U = 0x6E,
 
+	WASM_I32_NE = 0x47,
+	WASM_I64_NE = 0x52,
+
 	WASM_I32_LT_S = 0x48,
 	WASM_I32_LT_U = 0x49,
 	WASM_I32_GT_S = 0x4A,
@@ -58,6 +61,9 @@ enum {
 
 	WASM_DROP = 0x1A,
 
+	WASM_BLOCK = 0x02,
+	WASM_LOOP = 0x03,
+	WASM_BR_IF = 0x0D,
 	WASM_IF = 0x04,
 	WASM_ELSE = 0x05,
 	WASM_RETURN = 0x0F,

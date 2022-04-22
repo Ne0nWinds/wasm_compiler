@@ -395,32 +395,30 @@ u8 *compound_stmt(u8 *c) {
 
 			block = list_get(code_blocks_stack, code_block, code_blocks_stack.length - 1);
 
-			if (block.type == BLOCK_NORMAL) continue;
+			while (block.type != BLOCK_NORMAL && code_blocks_stack.length) {
+				if (block.type == BLOCK_ELSE) {
+					*c++ = WASM_END;
+					code_blocks_stack.length -= 1;
+				} else if (block.type == BLOCK_FOR) {
+					__builtin_memcpy(c, block._for.iteration.code, block._for.iteration.length);
+					c += block._for.iteration.length;
+					*c++ = WASM_DROP;
 
+					__builtin_memcpy(c, block._for.condition.code, block._for.condition.length);
+					c += block._for.condition.length;
+					*c++ = WASM_BR_IF;
+					*c++ = 0;
 
-			if (block.type == BLOCK_ELSE) {
-				*c++ = WASM_END;
-				code_blocks_stack.length -= 1;
-			}
-
-			if (block.type == BLOCK_FOR) {
-				__builtin_memcpy(c, block._for.iteration.code, block._for.iteration.length);
-				c += block._for.iteration.length;
-				*c++ = WASM_DROP;
-
-				__builtin_memcpy(c, block._for.condition.code, block._for.condition.length);
-				c += block._for.condition.length;
-				*c++ = WASM_BR_IF;
-				*c++ = 0;
-
-				*c++ = WASM_END;
-				*c++ = WASM_END;
-				code_blocks_stack.length -= 1;
-			}
-
-			if (block.type == BLOCK_IF && current_token->type != TOKEN_ELSE) {
-				*c++ = WASM_END;
-				code_blocks_stack.length -= 1;
+					*c++ = WASM_END;
+					*c++ = WASM_END;
+					code_blocks_stack.length -= 1;
+				} else if (block.type == BLOCK_IF && current_token->type != TOKEN_ELSE) {
+					*c++ = WASM_END;
+					code_blocks_stack.length -= 1;
+				} else {
+					break;
+				}
+				block = list_get(code_blocks_stack, code_block, code_blocks_stack.length - 1);
 			}
 			continue;
 		}

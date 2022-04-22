@@ -371,9 +371,9 @@ u8 *compound_stmt(u8 *c) {
 		if (current_token->type == TOKEN_CLOSED_BRACKET || current_token->type == TOKEN_SEMICOLON) {
 
 			code_block block;
+			block = list_get(code_blocks_stack, code_block, code_blocks_stack.length - 1);
 
 			if (current_token->type == TOKEN_SEMICOLON) {
-				block = list_get(code_blocks_stack, code_block, code_blocks_stack.length - 1);
 				if (block.type == BLOCK_NORMAL) {
 					current_token += 1;
 					continue;
@@ -381,7 +381,6 @@ u8 *compound_stmt(u8 *c) {
 			}
 
 			if (current_token->type == TOKEN_CLOSED_BRACKET) {
-				block = list_get(code_blocks_stack, code_block, code_blocks_stack.length - 1);
 				if (block.type == BLOCK_NORMAL) {
 					code_blocks_stack.length -= 1;
 				} else {
@@ -392,17 +391,16 @@ u8 *compound_stmt(u8 *c) {
 
 			current_token += 1;
 
-			if (current_token->type == TOKEN_ELSE) continue;
 			if (code_blocks_stack.length == 0) continue;
 
 			block = list_get(code_blocks_stack, code_block, code_blocks_stack.length - 1);
 
 			if (block.type == BLOCK_NORMAL) continue;
 
-			code_blocks_stack.length -= 1;
 
 			if (block.type == BLOCK_ELSE) {
 				*c++ = WASM_END;
+				code_blocks_stack.length -= 1;
 			}
 
 			if (block.type == BLOCK_FOR) {
@@ -417,10 +415,12 @@ u8 *compound_stmt(u8 *c) {
 
 				*c++ = WASM_END;
 				*c++ = WASM_END;
+				code_blocks_stack.length -= 1;
 			}
 
 			if (block.type == BLOCK_IF && current_token->type != TOKEN_ELSE) {
 				*c++ = WASM_END;
+				code_blocks_stack.length -= 1;
 			}
 			continue;
 		}

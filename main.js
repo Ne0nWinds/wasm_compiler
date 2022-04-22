@@ -103,6 +103,7 @@ async function compile(val) {
 		return null;
 	}
 	binary = new Uint8Array(compiler.memory.buffer, compiler.get_wasm_binary(), length);
+	console.log(binary);
 	const { instance } = await WebAssembly.instantiate(binary);
 
 	const value = instance.exports.main();

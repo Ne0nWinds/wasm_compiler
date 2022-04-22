@@ -389,7 +389,7 @@ u8 *compound_stmt(u8 *c) {
 					break;
 				}
 			}
-			
+
 			current_token += 1;
 
 			if (current_token->type == TOKEN_ELSE) continue;
@@ -561,16 +561,13 @@ int compile(char *text, u32 length) {
 
 	current_token = token_list.start;
 
-	c[0] = WASM_SECTION_CODE;
-	c[1] = 0x3;
-	c[2] = 0x1; // vec(code)
-	c[3] = 0x1;
-	c[4] = 0x0;
+	// c[0] = WASM_SECTION_CODE;
+	// c[1] = 0x3;
+	// c[2] = 0x1; // vec(code)
+	// c[3] = 0x1;
+	// c[4] = 0x0;
 
-	u8 *code_section_length = c + 1;
-	u8 *code_section_length2 = c + 3;
-
-	c += 5;
+	u8 *code_section_header = c;
 
 	u8 *code_start = c;
 
@@ -578,11 +575,29 @@ int compile(char *text, u32 length) {
 
 	*c++ = WASM_END;
 
-	*code_section_length += c - code_start;
-	*code_section_length2 += c - code_start;
+	u8 code_length1[4] = {0};
+	u8 code_length2[4] = {0};
+
+	u32 byte_length2 = 0;
+	EncodeLEB128(code_length2, c - code_start + 1, byte_length2);
+	u32 byte_length1 = 0;
+	EncodeLEB128(code_length1, c - code_start + 2 + byte_length2, byte_length1);
+
+	u32 section_header_length = 3 + byte_length1 + byte_length2;
+	__builtin_memcpy(code_section_header + section_header_length, code_section_header, c - code_start);
+
+	*code_section_header++ = WASM_SECTION_CODE;
+	__builtin_memcpy(code_section_header, code_length1, byte_length1);
+	code_section_header += byte_length1;
+	*code_section_header++ = 0x1; // vec(code)
+	__builtin_memcpy(code_section_header, code_length2, byte_length2);
+	code_section_header += byte_length2;
+	*code_section_header++ = 0;
 
 	if (error_occurred)
 		return 0;
+
+	c += section_header_length;
 	return c - wasm_binary;
 }
 

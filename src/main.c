@@ -366,13 +366,10 @@ u8 *compound_stmt(u8 *c) {
 	expect_token(TOKEN_OPEN_BRACKET);
 	list_push(code_blocks_stack, (code_block){BLOCK_NORMAL});
 
-	bump_move(sizeof(code_block));
-
 	while (current_token - (token *)token_list.start < token_list.length && !error_occurred) {
 		if (current_token->type == TOKEN_OPEN_BRACKET) {
 			current_token += 1;
 			list_push(code_blocks_stack, (code_block){BLOCK_NORMAL});
-			bump_move(sizeof(code_block));
 			continue;
 		}
 
@@ -442,7 +439,6 @@ u8 *compound_stmt(u8 *c) {
 			code_block b = {0};
 			b.type = BLOCK_IF;
 			list_push(code_blocks_stack, b);
-			bump_move(sizeof(code_block));
 			continue;
 		}
 
@@ -457,7 +453,6 @@ u8 *compound_stmt(u8 *c) {
 			code_block b = {0};
 			b.type = BLOCK_ELSE;
 			list_push(code_blocks_stack, b);
-			bump_move(sizeof(code_block));
 			continue;
 		}
 
@@ -556,8 +551,6 @@ u8 *compound_stmt(u8 *c) {
 
 	if (code_blocks_stack.length != 0)
 		error_occurred = true;
-
-	bump_free(code_blocks_stack.start);
 
 	if (depth != 0)
 		c -= 1;

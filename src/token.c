@@ -29,24 +29,26 @@ int int_from_str(char *text, u32 length) {
 static List token_list = {0};
 
 static void convert_to_keyword(token *t) {
-	if (string_compare(t->identifier.name, "return", 6)) {
-		t->type = TOKEN_RETURN;
-	}
+	const u32 l = t->identifier.length;
 
-	if (string_compare(t->identifier.name, "if", 2)) {
+	if (l == 2 && string_compare(t->identifier.name, "if", 2)) {
 		t->type = TOKEN_IF;
 	}
 
-	if (string_compare(t->identifier.name, "else", 4)) {
-		t->type = TOKEN_ELSE;
-	}
-
-	if (string_compare(t->identifier.name, "for", 3)) {
+	if (l == 3 && string_compare(t->identifier.name, "for", 3)) {
 		t->type = TOKEN_FOR;
 	}
 
-	if (string_compare(t->identifier.name, "while", 5)) {
+	if (l == 4 && string_compare(t->identifier.name, "else", 4)) {
+		t->type = TOKEN_ELSE;
+	}
+
+	if (l == 5 && string_compare(t->identifier.name, "while", 5)) {
 		t->type = TOKEN_WHILE;
+	}
+
+	if (l == 6 && string_compare(t->identifier.name, "return", 6)) {
+		t->type = TOKEN_RETURN;
 	}
 }
 

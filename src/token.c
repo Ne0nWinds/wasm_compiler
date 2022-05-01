@@ -158,6 +158,9 @@ List tokenize_text(char *text, u32 length, bool *unexpected_token) {
 			case '}': {
 				t.type = TOKEN_CLOSED_BRACKET;
 			} break;
+			case '&': {
+				t.type = TOKEN_ADDRESS;
+			} break;
 			default: {
 				*unexpected_token = true;
 				goto end;

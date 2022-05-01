@@ -65,6 +65,8 @@ static u8 *create_main_function(u8 *binary) {
 	return binary;
 }
 
+static bool error_occurred = 0;
+
 u32 depth = 0;
 
 u8 *token_to_op(u32 token_type, u8 *binary) {
@@ -110,13 +112,18 @@ u8 *token_to_op(u32 token_type, u8 *binary) {
 			binary[5] = 0;
 			depth += 1;
 		} break;
+		case TOKEN_ADDRESS: {
+			byte_length = 0;
+		} break;
+		default: {
+			error_occurred = true;
+		} break;
 	}
 	return binary + byte_length;
 }
 
 static List token_list = {0};
 static token *current_token = 0;
-static bool error_occurred = 0;
 
 typedef struct variable variable;
 struct variable {
@@ -209,7 +216,7 @@ u8 *expr(u8 *c) {
 			if ((current_token + 1)->type == TOKEN_ASSIGN) {
 				*c++ = WASM_I32_CONST;
 				*c++ = v->memory_location;
-			} else {
+			} else if ((current_token - 1)->type != TOKEN_ADDRESS) {
 				*c++ = WASM_I32_LOAD;
 				*c++ = 2;
 				*c++ = 0;
@@ -252,6 +259,7 @@ u8 *expr(u8 *c) {
 			case TOKEN_MUL: {
 				op.precedence = PREC_MUL;
 			} break;
+			case TOKEN_ADDRESS:
 			case TOKEN_NEGATIVE: {
 				op.precedence = PREC_POSTFIX;
 			} break;

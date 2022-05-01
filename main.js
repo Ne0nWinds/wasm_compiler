@@ -66,7 +66,8 @@ async function runTestCases(instance) {
 		'{ result = 50; for (i = 0; i < 10; i = i + 1) for (j = 0; j < 10; j = j + 1) if (result < 150) if (result < 100) result = result + 1; else result = result + 2; else result = result + 5; return result; }', 275,
 		'{ i = 0; while (1) { i = i + 1; if (i > 10) return 5; } return 9; }', 5,
 		'{ return_value = 5; return return_value; }', 5,
-		'{ i = 27; if_cond = i > 22; if (if_cond) return 82; else return 1; }', 82
+		'{ i = 27; if_cond = i > 22; if (if_cond) return 82; else return 1; }', 82,
+		'{ x = 5; y = &x; return 8; }', 8
 	];
 
 	const { length } = test_cases;

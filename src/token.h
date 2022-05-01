@@ -29,7 +29,7 @@ typedef enum {
 	TOKEN_ELSE,
 	TOKEN_FOR,
 	TOKEN_WHILE,
-
+	TOKEN_ADDRESS,
 } token_type;
 
 typedef struct token token;

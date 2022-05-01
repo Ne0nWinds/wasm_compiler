@@ -402,7 +402,6 @@ u8 *compound_stmt(u8 *c) {
 				} else if (block.type == BLOCK_FOR) {
 					__builtin_memcpy(c, block._for.iteration.code, block._for.iteration.length);
 					c += block._for.iteration.length;
-					*c++ = WASM_DROP;
 
 					__builtin_memcpy(c, block._for.condition.code, block._for.condition.length);
 					c += block._for.condition.length;
@@ -454,30 +453,47 @@ u8 *compound_stmt(u8 *c) {
 			continue;
 		}
 
-		if (current_token->type == TOKEN_FOR) {
+		if (current_token->type == TOKEN_FOR || current_token->type == TOKEN_WHILE) {
+			token_type loop_type = current_token->type;
 			current_token += 1;
 			expect_token(TOKEN_OPEN_PARENTHESIS);
 
-			// init
-			c = expr_stmt(c);
-			if (depth > 0) {
-				*c++ = WASM_DROP;
+			u32 condition_length = 0;
+			u8 *condition = 0;
+
+			u32 iteration_length = 0;
+			u8 *iteration = 0;
+
+			if (loop_type == TOKEN_FOR) {
+
+				// init
+				c = expr_stmt(c);
+				if (depth > 0) {
+					*c++ = WASM_DROP;
+					depth -= 1;
+				}
+
+				// condition
+				condition = bump_get();
+				u8 *condition_end = expr_stmt(condition);
 				depth -= 1;
+				condition_length = condition_end - condition;
+				bump_move(condition_length);
+
+				// iteration
+				iteration = bump_get();
+				u8 *iteration_end = expr(iteration);
+				*iteration_end++ = WASM_DROP;
+				depth -= 1;
+				iteration_length = iteration_end - iteration;
+				bump_move(iteration_length);
+			} else if (loop_type == TOKEN_WHILE) {
+				condition = bump_get();
+				u8 *condition_end = expr(condition);
+				depth -= 1;
+				condition_length = condition_end - condition;
+				bump_move(condition_length);
 			}
-
-			// condition
-			u8 *condition = bump_get();
-			u8 *condition_end = expr_stmt(condition);
-			depth -= 1;
-			u32 condition_length = condition_end - condition;
-			bump_move(condition_length);
-
-			// iteration
-			u8 *iteration = bump_get();
-			u8 *iteration_end = expr(iteration);
-			depth -= 1;
-			u32 iteration_length = iteration_end - iteration;
-			bump_move(iteration_length);
 
 			expect_token(TOKEN_CLOSED_PARENTHESIS);
 

@@ -63,7 +63,8 @@ async function runTestCases(instance) {
 		'{ result = 50; for (i = 0; i < 10; i = i + 1) { for (j = 0; j < 10; j = j + 1) { result = result + 1; } } return result; }', 150,
 		'{ result = 50; for (i = 0; i < 10; i = i + 1) for (j = 0; j < 10; j = j + 1) result = result + 1; return result; }', 150,
 		'{ result = 50; for (i = 0; i < 10; i = i + 1) { for (j = 0; j < 10; j = j + 1) { if (result < 1024) { if (result < 50) result = result + 1; else result = result + 2; } } } return result; }', 250,
-		'{ result = 50; for (i = 0; i < 10; i = i + 1) for (j = 0; j < 10; j = j + 1) if (result < 150) if (result < 100) result = result + 1; else result = result + 2; else result = result + 5; return result; }', 275
+		'{ result = 50; for (i = 0; i < 10; i = i + 1) for (j = 0; j < 10; j = j + 1) if (result < 150) if (result < 100) result = result + 1; else result = result + 2; else result = result + 5; return result; }', 275,
+		'{ i = 0; while (1) { i = i + 1; if (i > 10) return 5; } return 9; }', 5,
 	];
 
 	const { length } = test_cases;

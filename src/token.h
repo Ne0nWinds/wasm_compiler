@@ -28,6 +28,7 @@ typedef enum {
 	TOKEN_IF,
 	TOKEN_ELSE,
 	TOKEN_FOR,
+	TOKEN_WHILE,
 
 } token_type;
 

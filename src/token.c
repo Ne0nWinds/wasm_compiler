@@ -59,8 +59,10 @@ List tokenize_text(char *text, u32 length, bool *unexpected_token) {
 
 	int i = 0;
 	for (; i < length; ++i) {
-		token t = {0};
 		char *c = text + i;
+		token t = {
+			.type = *c
+		};
 
 		if (is_whitespace(*c)) continue;
 
@@ -98,38 +100,22 @@ List tokenize_text(char *text, u32 length, bool *unexpected_token) {
 
 		switch (*c) {
 			case '+': {
-				t.type = TOKEN_PLUS;
 				if (prev_token.type != TOKEN_INT && prev_token.type != TOKEN_IDENTIFIER) {
 					t.type = TOKEN_POSITIVE;
 				}
 			} break;
 			case '-': {
-				t.type = TOKEN_MINUS;
 				if (prev_token.type != TOKEN_INT && prev_token.type != TOKEN_IDENTIFIER) {
 					t.type = TOKEN_NEGATIVE;
 				}
 			} break;
-			case '*': {
-				t.type = TOKEN_MUL;
-			} break;
-			case '/': {
-				t.type = TOKEN_DIV;
-			} break;
-			case '(': {
-				t.type = TOKEN_OPEN_PARENTHESIS;
-			} break;
-			case ')': {
-				t.type = TOKEN_CLOSED_PARENTHESIS;
-			} break;
 			case '<': {
-				t.type = TOKEN_LT;
 				if (*(c + 1) == '=') {
 					t.type = TOKEN_LE;
 					i += 1;
 				}
 			} break;
 			case '>': {
-				t.type = TOKEN_GT;
 				if (*(c + 1) == '=') {
 					t.type = TOKEN_GE;
 					i += 1;
@@ -143,28 +129,11 @@ List tokenize_text(char *text, u32 length, bool *unexpected_token) {
 				}
 			} break;
 			case '=': {
-				t.type = TOKEN_ASSIGN;
 				if (*(c + 1) == '=') {
 					t.type = TOKEN_EQ;
 					i += 1;
 				}
 			} break;
-			case ';': {
-				t.type = TOKEN_SEMICOLON;
-			} break;
-			case '{': {
-				t.type = TOKEN_OPEN_BRACKET;
-			} break;
-			case '}': {
-				t.type = TOKEN_CLOSED_BRACKET;
-			} break;
-			case '&': {
-				t.type = TOKEN_ADDRESS;
-			} break;
-			default: {
-				*unexpected_token = true;
-				goto end;
-			}
 		}
 
 		list_add(token_list, t);

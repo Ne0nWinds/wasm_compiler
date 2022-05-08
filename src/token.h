@@ -3,33 +3,27 @@
 #include "memory.h"
 
 typedef enum {
-	TOKEN_INT = 1,
-	TOKEN_PLUS,
-	TOKEN_MINUS,
-	TOKEN_MUL,
-	TOKEN_DIV,
-	TOKEN_OPEN_PARENTHESIS,
-	TOKEN_CLOSED_PARENTHESIS,
-	TOKEN_NEGATIVE,
-	TOKEN_POSITIVE,
+
+	// primary tokens
+	TOKEN_INT = 256,
+	TOKEN_IDENTIFIER,
+
+	// two character tokens
 	TOKEN_EQ,
 	TOKEN_NE,
-	TOKEN_LT,
 	TOKEN_LE,
-	TOKEN_GT,
 	TOKEN_GE,
-	TOKEN_SEMICOLON,
-	TOKEN_IDENTIFIER,
-	TOKEN_KEYWORD,
-	TOKEN_ASSIGN,
+
+	// keywords
 	TOKEN_RETURN,
-	TOKEN_OPEN_BRACKET,
-	TOKEN_CLOSED_BRACKET,
 	TOKEN_IF,
 	TOKEN_ELSE,
 	TOKEN_FOR,
 	TOKEN_WHILE,
-	TOKEN_ADDRESS,
+
+	// context-based tokens
+	TOKEN_NEGATIVE,
+	TOKEN_POSITIVE,
 } token_type;
 
 typedef struct token token;

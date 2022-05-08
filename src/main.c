@@ -73,16 +73,16 @@ u8 *token_to_op(u32 token_type, u8 *binary) {
 	u32 byte_length = 1;
 	depth -= 1;
 	switch (token_type) {
-		case TOKEN_PLUS: {
+		case '+': {
 			*binary = WASM_I32_ADD;
 		} break;
-		case TOKEN_MINUS: {
+		case '-': {
 			*binary = WASM_I32_SUB;
 		} break;
-		case TOKEN_MUL: {
+		case '*': {
 			*binary = WASM_I32_MUL;
 		} break;
-		case TOKEN_DIV: {
+		case '/': {
 			*binary = WASM_I32_DIV_S;
 		} break;
 		case TOKEN_NEGATIVE: {
@@ -90,19 +90,19 @@ u8 *token_to_op(u32 token_type, u8 *binary) {
 			EncodeLEB128(binary + 1, -1, byte_length);
 			binary[byte_length++] = WASM_I32_MUL;
 		} break;
-		case TOKEN_LT: {
+		case '<': {
 			*binary = WASM_I32_LT_S;
+		} break;
+		case '>': {
+			*binary = WASM_I32_GT_S;
 		} break;
 		case TOKEN_LE: {
 			*binary = WASM_I32_LE_S;
 		} break;
-		case TOKEN_GT: {
-			*binary = WASM_I32_GT_S;
-		} break;
 		case TOKEN_GE: {
 			*binary = WASM_I32_GE_S;
 		} break;
-		case TOKEN_ASSIGN: {
+		case '=': {
 			byte_length = 6;
 			*binary = WASM_I32_STORE;
 			binary[1] = 2;
@@ -112,7 +112,7 @@ u8 *token_to_op(u32 token_type, u8 *binary) {
 			binary[5] = 0;
 			depth += 1;
 		} break;
-		case TOKEN_ADDRESS: {
+		case '&': {
 			byte_length = 0;
 		} break;
 		default: {
@@ -161,7 +161,7 @@ u8 *expr(u8 *c) {
 	struct operator {
 		u8 paren_level;
 		u8 precedence;
-		u8 token_type;
+		token_type token_type;
 	};
 
 	static operator operators_data[128] = {0};
@@ -195,7 +195,7 @@ u8 *expr(u8 *c) {
 
 		token t = *current_token;
 
-		if (t.type == TOKEN_SEMICOLON) break;
+		if (t.type == ';') break;
 
 		if (t.type == TOKEN_INT) {
 			*c++ = WASM_I32_CONST;
@@ -213,10 +213,10 @@ u8 *expr(u8 *c) {
 
 			*c++ = WASM_I32_CONST;
 			*c++ = v->memory_location;
-			if ((current_token + 1)->type == TOKEN_ASSIGN) {
+			if ((current_token + 1)->type == '=') {
 				*c++ = WASM_I32_CONST;
 				*c++ = v->memory_location;
-			} else if ((current_token - 1)->type != TOKEN_ADDRESS) {
+			} else if ((current_token - 1)->type != '&') {
 				*c++ = WASM_I32_LOAD;
 				*c++ = 2;
 				*c++ = 0;
@@ -225,13 +225,13 @@ u8 *expr(u8 *c) {
 			continue;
 		}
 
-		if (t.type == TOKEN_OPEN_PARENTHESIS) {
+		if (t.type == '(') {
 			// change precedence
 			current_paren_level += 1;
 			continue;
 		}
 
-		if (t.type == TOKEN_CLOSED_PARENTHESIS) {
+		if (t.type == ')') {
 			if (current_paren_level == 0) break;
 
 			// unwind stack to open paren
@@ -251,25 +251,25 @@ u8 *expr(u8 *c) {
 		op.paren_level = current_paren_level;
 
 		switch (t.type) {
-			case TOKEN_MINUS:
-			case TOKEN_PLUS: {
+			case '-':
+			case '+': {
 				op.precedence = PREC_ADD;
 			} break;
-			case TOKEN_DIV:
-			case TOKEN_MUL: {
+			case '/':
+			case '*': {
 				op.precedence = PREC_MUL;
 			} break;
-			case TOKEN_ADDRESS:
+			case '&':
 			case TOKEN_NEGATIVE: {
 				op.precedence = PREC_POSTFIX;
 			} break;
-			case TOKEN_LT:
+			case '<':
+			case '>':
 			case TOKEN_LE:
-			case TOKEN_GT:
 			case TOKEN_GE: {
 				op.precedence = PREC_RELATIONAL;
 			} break;
-			case TOKEN_ASSIGN: {
+			case '=': {
 				op.precedence = PREC_ASSIGN;
 			} break;
 			case TOKEN_POSITIVE: {
@@ -322,7 +322,7 @@ void expect_token(token_type type) {
 
 u8 *expr_stmt(u8 *c) {
 	u8 *expr_code = expr(c);
-	expect_token(TOKEN_SEMICOLON);
+	expect_token(';');
 	return expr_code;
 }
 
@@ -363,29 +363,29 @@ u8 *compound_stmt(u8 *c) {
 
 	code_block b = {BLOCK_NORMAL};
 
-	expect_token(TOKEN_OPEN_BRACKET);
+	expect_token('{');
 	list_push(code_blocks_stack, (code_block){BLOCK_NORMAL});
 
 	while (current_token - (token *)token_list.start < token_list.length && !error_occurred) {
-		if (current_token->type == TOKEN_OPEN_BRACKET) {
+		if (current_token->type == '{') {
 			current_token += 1;
 			list_push(code_blocks_stack, (code_block){BLOCK_NORMAL});
 			continue;
 		}
 
-		if (current_token->type == TOKEN_CLOSED_BRACKET || current_token->type == TOKEN_SEMICOLON) {
+		if (current_token->type == '}' || current_token->type == ';') {
 
 			code_block block;
 			block = list_get(code_blocks_stack, code_block, code_blocks_stack.length - 1);
 
-			if (current_token->type == TOKEN_SEMICOLON) {
+			if (current_token->type == ';') {
 				if (block.type == BLOCK_NORMAL) {
 					current_token += 1;
 					continue;
 				}
 			}
 
-			if (current_token->type == TOKEN_CLOSED_BRACKET) {
+			if (current_token->type == '}') {
 				if (block.type == BLOCK_NORMAL) {
 					code_blocks_stack.length -= 1;
 				} else {
@@ -429,10 +429,10 @@ u8 *compound_stmt(u8 *c) {
 
 		if (current_token->type == TOKEN_IF) {
 			current_token += 1;
-			expect_token(TOKEN_OPEN_PARENTHESIS);
+			expect_token('(');
 			c = expr(c);
 			depth -= 1;
-			expect_token(TOKEN_CLOSED_PARENTHESIS);
+			expect_token(')');
 			*c++ = WASM_IF;
 			*c++ = 0x40; // this may have to be changed
 
@@ -459,7 +459,7 @@ u8 *compound_stmt(u8 *c) {
 		if (current_token->type == TOKEN_FOR || current_token->type == TOKEN_WHILE) {
 			token_type loop_type = current_token->type;
 			current_token += 1;
-			expect_token(TOKEN_OPEN_PARENTHESIS);
+			expect_token('(');
 
 			u32 condition_length = 0;
 			u8 *condition = 0;
@@ -498,7 +498,7 @@ u8 *compound_stmt(u8 *c) {
 				bump_move(condition_length);
 			}
 
-			expect_token(TOKEN_CLOSED_PARENTHESIS);
+			expect_token(')');
 
 			code_block for_block = {0};
 			for_block.type = BLOCK_FOR;
